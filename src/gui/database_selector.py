@@ -32,9 +32,12 @@ class DatabaseSelectorDialog(QDialog):
 
     def animate_in(self):
         """Animiert den Dialog beim Öffnen"""
-        animator.fade_in(self.header_container, 200)
-        QTimer.singleShot(100, lambda: animator.fade_in(self.recent_container, 250))
-        QTimer.singleShot(150, lambda: animator.fade_in(self.actions_container, 250))
+        if hasattr(self, 'header_container'):
+            animator.fade_in(self.header_container, 200)
+        if hasattr(self, 'recent_container'):
+            QTimer.singleShot(100, lambda: animator.fade_in(self.recent_container, 250))
+        if hasattr(self, 'actions_container'):
+            QTimer.singleShot(150, lambda: animator.fade_in(self.actions_container, 250))
 
     def setup_ui(self):
         """Erstellt das UI"""
@@ -45,9 +48,8 @@ class DatabaseSelectorDialog(QDialog):
 
         c = theme.get_colors()
 
-        # Haupt-Container
-        main_container = QFrame()
-        main_layout = QVBoxLayout(main_container)
+        # Haupt-Layout
+        main_layout = QVBoxLayout(self)
         main_layout.setSpacing(30)
         main_layout.setContentsMargins(40, 40, 40, 40)
 
@@ -98,12 +100,11 @@ class DatabaseSelectorDialog(QDialog):
                     background-color: {c['surface']};
                     border: 2px solid {c['surface_border']};
                     border-radius: 16px;
-                    padding: 20px;
                 }}
             """)
             recent_layout = QVBoxLayout(self.recent_container)
             recent_layout.setSpacing(12)
-            recent_layout.setContentsMargins(0, 0, 0, 0)
+            recent_layout.setContentsMargins(20, 20, 20, 20)
 
             recent_label = QLabel("Kürzlich verwendet")
             recent_label_font = QFont()
@@ -139,15 +140,13 @@ class DatabaseSelectorDialog(QDialog):
             self.recent_list.itemDoubleClicked.connect(self.on_recent_database_selected)
 
             for db_path in recent_databases:
-                item = QListWidgetItem(str(Path(db_path).name))
-                item.setData(Qt.ItemDataRole.UserRole, db_path)
-                self.recent_list.addItem(item)
+                if Path(db_path).exists():
+                    item = QListWidgetItem(str(Path(db_path).name))
+                    item.setData(Qt.ItemDataRole.UserRole, db_path)
+                    self.recent_list.addItem(item)
 
             recent_layout.addWidget(self.recent_list)
             main_layout.addWidget(self.recent_container)
-        else:
-            # Platzhalter wenn keine kürzlich verwendeten Datenbanken
-            self.recent_container = QFrame()
 
         # === AKTIONEN ===
         self.actions_container = QFrame()
@@ -162,7 +161,7 @@ class DatabaseSelectorDialog(QDialog):
             "plus",
             c['primary']
         )
-        new_db_button.mousePressEvent = lambda event: self.create_new_database()
+        new_db_button.clicked.connect(self.create_new_database)
         actions_layout.addWidget(new_db_button)
 
         # Datenbank öffnen Button
@@ -172,7 +171,7 @@ class DatabaseSelectorDialog(QDialog):
             "folder_open",
             c['secondary']
         )
-        open_db_button.mousePressEvent = lambda event: self.open_existing_database()
+        open_db_button.clicked.connect(self.open_existing_database)
         actions_layout.addWidget(open_db_button)
 
         main_layout.addWidget(self.actions_container)
@@ -207,67 +206,40 @@ class DatabaseSelectorDialog(QDialog):
 
         main_layout.addLayout(footer_layout)
 
-        # Set main layout
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(main_container)
-
-    def _create_action_button(self, title: str, description: str, icon_name: str, accent_color: str) -> QFrame:
-        """Erstellt einen Action-Button als clickbares Frame"""
+    def _create_action_button(self, title: str, description: str, icon_name: str, accent_color: str) -> QPushButton:
+        """Erstellt einen Action-Button"""
         c = theme.get_colors()
 
-        # Frame als Button
-        container = QFrame()
-        container.setMinimumHeight(80)
-        container.setCursor(Qt.CursorShape.PointingHandCursor)
-        container.setStyleSheet(f"""
-            QFrame {{
+        button = QPushButton(f"  {title}")
+        button.setMinimumHeight(80)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        # Icon setzen
+        icon = icon_provider.get_icon(icon_name, accent_color, 28)
+        button.setIcon(icon)
+        button.setIconSize(button.iconSize() * 1.5)
+
+        button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 16px;
-                padding: 20px;
+                text-align: left;
+                padding-left: 20px;
+                font-size: 14px;
+                font-weight: 600;
+                color: {c['text_primary']};
             }}
-            QFrame:hover {{
+            QPushButton:hover {{
                 background-color: {c['surface_hover']};
                 border-color: {accent_color};
             }}
         """)
 
-        # Layout für Button-Inhalt
-        button_layout = QHBoxLayout(container)
-        button_layout.setSpacing(15)
-        button_layout.setContentsMargins(20, 15, 20, 15)
+        # Tooltip mit Beschreibung
+        button.setToolTip(description)
 
-        # Icon
-        icon_label = QLabel()
-        icon_pixmap = icon_provider.get_pixmap(icon_name, accent_color, 32)
-        icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(32, 32)
-        button_layout.addWidget(icon_label)
-
-        # Text Container
-        text_container = QVBoxLayout()
-        text_container.setSpacing(4)
-
-        title_label = QLabel(title)
-        title_font = QFont()
-        title_font.setPointSize(13)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet(f"color: {c['text_primary']}; background: transparent; border: none;")
-        text_container.addWidget(title_label)
-
-        desc_label = QLabel(description)
-        desc_label.setStyleSheet(f"color: {c['text_secondary']}; font-size: 12px; background: transparent; border: none;")
-        text_container.addWidget(desc_label)
-
-        button_layout.addLayout(text_container)
-        button_layout.addStretch()
-
-        # Mache das Frame clickbar
-        container.mousePressEvent = lambda event: None  # Wird später überschrieben
-
-        return container
+        return button
 
     def on_recent_database_selected(self, item: QListWidgetItem):
         """Callback wenn kürzlich verwendete Datenbank ausgewählt wurde"""
