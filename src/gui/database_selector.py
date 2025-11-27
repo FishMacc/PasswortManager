@@ -5,7 +5,7 @@ Ermöglicht das Öffnen bestehender oder Erstellen neuer Datenbanken.
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QFileDialog, QMessageBox, QListWidget, QListWidgetItem
+    QFrame, QFileDialog, QMessageBox, QListWidget, QListWidgetItem, QWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -46,7 +46,7 @@ class DatabaseSelectorDialog(QDialog):
         c = theme.get_colors()
 
         # Haupt-Container
-        main_container = QWidget()
+        main_container = QFrame()
         main_layout = QVBoxLayout(main_container)
         main_layout.setSpacing(30)
         main_layout.setContentsMargins(40, 40, 40, 40)
@@ -162,7 +162,7 @@ class DatabaseSelectorDialog(QDialog):
             "plus",
             c['primary']
         )
-        new_db_button.clicked.connect(self.create_new_database)
+        new_db_button.mousePressEvent = lambda event: self.create_new_database()
         actions_layout.addWidget(new_db_button)
 
         # Datenbank öffnen Button
@@ -172,7 +172,7 @@ class DatabaseSelectorDialog(QDialog):
             "folder_open",
             c['secondary']
         )
-        open_db_button.clicked.connect(self.open_existing_database)
+        open_db_button.mousePressEvent = lambda event: self.open_existing_database()
         actions_layout.addWidget(open_db_button)
 
         main_layout.addWidget(self.actions_container)
@@ -212,16 +212,29 @@ class DatabaseSelectorDialog(QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(main_container)
 
-    def _create_action_button(self, title: str, description: str, icon_name: str, accent_color: str) -> QPushButton:
-        """Erstellt einen Action-Button"""
+    def _create_action_button(self, title: str, description: str, icon_name: str, accent_color: str) -> QFrame:
+        """Erstellt einen Action-Button als clickbares Frame"""
         c = theme.get_colors()
 
-        button = QPushButton()
-        button.setMinimumHeight(80)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Frame als Button
+        container = QFrame()
+        container.setMinimumHeight(80)
+        container.setCursor(Qt.CursorShape.PointingHandCursor)
+        container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['surface']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 16px;
+                padding: 20px;
+            }}
+            QFrame:hover {{
+                background-color: {c['surface_hover']};
+                border-color: {accent_color};
+            }}
+        """)
 
         # Layout für Button-Inhalt
-        button_layout = QHBoxLayout()
+        button_layout = QHBoxLayout(container)
         button_layout.setSpacing(15)
         button_layout.setContentsMargins(20, 15, 20, 15)
 
@@ -251,25 +264,10 @@ class DatabaseSelectorDialog(QDialog):
         button_layout.addLayout(text_container)
         button_layout.addStretch()
 
-        # Erstelle Container-Widget
-        container = QWidget()
-        container.setLayout(button_layout)
+        # Mache das Frame clickbar
+        container.mousePressEvent = lambda event: None  # Wird später überschrieben
 
-        # Da QPushButton kein Layout direkt unterstützt, verwenden wir Stylesheet
-        button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {c['surface']};
-                border: 2px solid {c['surface_border']};
-                border-radius: 16px;
-                text-align: left;
-            }}
-            QPushButton:hover {{
-                background-color: {c['surface_hover']};
-                border-color: {accent_color};
-            }}
-        """)
-
-        return button
+        return container
 
     def on_recent_database_selected(self, item: QListWidgetItem):
         """Callback wenn kürzlich verwendete Datenbank ausgewählt wurde"""
@@ -316,6 +314,3 @@ class DatabaseSelectorDialog(QDialog):
     def get_selected_database(self) -> str:
         """Gibt den Pfad zur ausgewählten Datenbank zurück"""
         return self.selected_database_path
-
-
-from PyQt6.QtWidgets import QWidget
