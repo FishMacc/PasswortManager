@@ -26,37 +26,46 @@ class PasswordGeneratorDialog(QDialog):
         self.generate_password()
 
     def setup_ui(self):
-        """Erstellt das moderne, responsive UI des Generator-Dialogs"""
+        """Erstellt das moderne, kompakte UI des Generator-Dialogs"""
         self.setWindowTitle("Passwort Generieren")
         self.setModal(True)
 
-        # Responsive Größe
-        self.setMinimumSize(550, 600)
-        self.resize(550, 600)
+        # Feste kompakte Größe
+        self.setMinimumSize(480, 520)
+        self.resize(480, 520)
 
+        # Zentriere auf Bildschirm
+        from .responsive import responsive
+        screen_info = responsive.get_screen_info()
+        x = (screen_info['screen_width'] - 480) // 2
+        y = (screen_info['screen_height'] - 520) // 2
+        self.move(x, y)
+
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
         c = theme.get_colors()
 
-        # Haupt-Container mit Padding
-        main_container = QWidget()
-        main_layout = QVBoxLayout(main_container)
-        main_layout.setSpacing(24)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        # Haupt-Layout direkt auf Dialog
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(spacing['section_spacing'])
+        main_layout.setContentsMargins(spacing['margins'], spacing['margins'], spacing['margins'], spacing['margins'])
 
         # === HEADER ===
         header_layout = QHBoxLayout()
-        header_layout.setSpacing(15)
+        header_layout.setSpacing(spacing['element_spacing'])
 
         # Icon
         icon_label = QLabel()
-        icon_pixmap = icon_provider.get_pixmap("dice", c['primary'], 32)
+        icon_size = int(spacing['icon_size'] * 0.7)
+        icon_pixmap = icon_provider.get_pixmap("dice", c['primary'], icon_size)
         icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(32, 32)
+        icon_label.setFixedSize(icon_size, icon_size)
         header_layout.addWidget(icon_label)
 
         # Titel
-        title = QLabel("Passwort Generieren")
+        title = QLabel("Passwort Generator")
         title_font = QFont()
-        title_font.setPointSize(22)
+        title_font.setPointSize(fonts['title'])
         title_font.setBold(True)
         title.setFont(title_font)
         title.setStyleSheet(f"color: {c['text_primary']};")
@@ -71,12 +80,12 @@ class PasswordGeneratorDialog(QDialog):
             QFrame {{
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 16px;
-                padding: 20px;
+                border-radius: 12px;
             }}
         """)
         password_layout = QVBoxLayout(password_section)
-        password_layout.setSpacing(12)
+        password_layout.setSpacing(8)
+        password_layout.setContentsMargins(16, 16, 16, 16)
 
         # Label
         password_label = QLabel("Generiertes Passwort")
@@ -186,15 +195,15 @@ class PasswordGeneratorDialog(QDialog):
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 16px;
-                padding: 20px;
             }}
         """)
         options_layout = QVBoxLayout(options_section)
-        options_layout.setSpacing(20)
+        options_layout.setSpacing(12)
+        options_layout.setContentsMargins(16, 16, 16, 16)
 
         # Längen-Kontrolle
         length_container = QVBoxLayout()
-        length_container.setSpacing(10)
+        length_container.setSpacing(6)
 
         length_header = QHBoxLayout()
         length_title = QLabel("Passwortlänge")

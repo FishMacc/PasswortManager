@@ -3,7 +3,7 @@ Dialog zum Hinzufügen/Bearbeiten von Passwort-Einträgen mit modernem Design
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
-    QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox, QFrame, QSizePolicy
+    QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox, QFrame, QSizePolicy, QWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -14,6 +14,7 @@ from .generator_dialog import PasswordGeneratorDialog
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
+from .responsive import responsive
 
 
 class PasswordEntryDialog(QDialog):
@@ -37,41 +38,57 @@ class PasswordEntryDialog(QDialog):
 
     def animate_in(self):
         """Animiert den Dialog beim Öffnen"""
-        for widget in [self.header_container, self.form_container, self.notes_container, self.button_container]:
-            animator.fade_in(widget, 250)
+        if hasattr(self, 'header_container'):
+            animator.fade_in(self.header_container, 250)
+        if hasattr(self, 'form_container'):
+            QTimer.singleShot(50, lambda: animator.fade_in(self.form_container, 250))
+        if hasattr(self, 'notes_container'):
+            QTimer.singleShot(100, lambda: animator.fade_in(self.notes_container, 250))
+        if hasattr(self, 'button_container'):
+            QTimer.singleShot(150, lambda: animator.fade_in(self.button_container, 250))
 
     def setup_ui(self):
-        """Erstellt das moderne, responsive UI"""
+        """Erstellt das moderne, kompakte UI"""
         title = "Eintrag bearbeiten" if self.is_edit_mode else "Neuer Eintrag"
         self.setWindowTitle(title)
         self.setModal(True)
-        self.setMinimumSize(580, 680)
-        self.resize(580, 680)
 
+        # Feste kompakte Größe
+        self.setMinimumSize(500, 580)
+        self.resize(500, 580)
+
+        # Zentriere auf Bildschirm
+        screen_info = responsive.get_screen_info()
+        x = (screen_info['screen_width'] - 500) // 2
+        y = (screen_info['screen_height'] - 580) // 2
+        self.move(x, y)
+
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
         c = theme.get_colors()
 
-        # Haupt-Container
-        main_container = QWidget()
-        main_layout = QVBoxLayout(main_container)
-        main_layout.setSpacing(24)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        # Haupt-Layout direkt auf Dialog
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(spacing['section_spacing'])
+        main_layout.setContentsMargins(spacing['margins'], spacing['margins'], spacing['margins'], spacing['margins'])
 
         # === HEADER ===
         self.header_container = QFrame()
         header_layout = QHBoxLayout(self.header_container)
-        header_layout.setSpacing(15)
+        header_layout.setSpacing(spacing['element_spacing'])
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         icon_name = "edit" if self.is_edit_mode else "plus"
         icon_label = QLabel()
-        icon_pixmap = icon_provider.get_pixmap(icon_name, c['primary'], 32)
+        icon_size = int(spacing['icon_size'] * 0.7)
+        icon_pixmap = icon_provider.get_pixmap(icon_name, c['primary'], icon_size)
         icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(32, 32)
+        icon_label.setFixedSize(icon_size, icon_size)
         header_layout.addWidget(icon_label)
 
         title_label = QLabel(title)
         title_font = QFont()
-        title_font.setPointSize(22)
+        title_font.setPointSize(fonts['title'])
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setStyleSheet(f"color: {c['text_primary']};")
@@ -86,24 +103,24 @@ class PasswordEntryDialog(QDialog):
             QFrame {{
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 16px;
-                padding: 24px;
+                border-radius: 12px;
             }}
         """)
         form_layout = QFormLayout(self.form_container)
-        form_layout.setSpacing(16)
-        form_layout.setContentsMargins(0, 0, 0, 0)
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(16, 16, 16, 16)
+        form_layout.setHorizontalSpacing(12)
 
-        label_style = f"color: {c['text_primary']}; font-weight: 600; font-size: 13px;"
+        label_style = f"color: {c['text_primary']}; font-weight: 600; font-size: {fonts['body']}px; background: transparent; border: none;"
         input_style = f"""
             QLineEdit, QComboBox {{
                 background-color: {c['input_background']};
                 color: {c['text_primary']};
                 border: 2px solid {c['input_border']};
-                border-radius: 10px;
-                padding: 12px 16px;
-                min-height: 20px;
-                font-size: 13px;
+                border-radius: 8px;
+                padding: 0 12px;
+                min-height: {spacing['button_height'] - 4}px;
+                font-size: {fonts['body']}px;
             }}
             QLineEdit:focus, QComboBox:focus {{
                 border-color: {c['primary']};
@@ -111,7 +128,7 @@ class PasswordEntryDialog(QDialog):
         """
 
         # Name
-        name_label = QLabel("Name/Titel:")
+        name_label = QLabel("Name:")
         name_label.setStyleSheet(label_style)
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("z.B. Gmail Account")
@@ -128,10 +145,10 @@ class PasswordEntryDialog(QDialog):
         form_layout.addRow(category_label, self.category_combo)
 
         # Username
-        username_label = QLabel("Benutzername:")
+        username_label = QLabel("Username:")
         username_label.setStyleSheet(label_style)
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("z.B. user@example.com")
+        self.username_input.setPlaceholderText("user@example.com")
         self.username_input.setStyleSheet(input_style)
         form_layout.addRow(username_label, self.username_input)
 
@@ -140,28 +157,28 @@ class PasswordEntryDialog(QDialog):
         password_label.setStyleSheet(label_style)
 
         password_container = QHBoxLayout()
-        password_container.setSpacing(10)
+        password_container.setSpacing(6)
 
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setPlaceholderText("Passwort eingeben")
+        self.password_input.setPlaceholderText("Passwort")
         self.password_input.setStyleSheet(input_style)
         self.password_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         password_container.addWidget(self.password_input)
 
         # Toggle Password Button
         self.toggle_password_button = QPushButton()
-        eye_icon = icon_provider.get_icon("eye", c['text_secondary'], 18)
+        eye_icon = icon_provider.get_icon("eye", c['text_secondary'], 16)
         self.toggle_password_button.setIcon(eye_icon)
-        self.toggle_password_button.setFixedSize(44, 44)
+        self.toggle_password_button.setFixedSize(spacing['button_height'], spacing['button_height'])
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
-        self.toggle_password_button.setToolTip("Passwort anzeigen/verstecken")
+        self.toggle_password_button.setToolTip("Anzeigen/Verstecken")
         self.toggle_password_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.toggle_password_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['background_tertiary']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 10px;
+                border-radius: 8px;
             }}
             QPushButton:hover {{
                 background-color: {c['primary']};
@@ -172,17 +189,17 @@ class PasswordEntryDialog(QDialog):
 
         # Generate Button
         self.generate_button = QPushButton()
-        dice_icon = icon_provider.get_icon("dice", c['text_secondary'], 18)
+        dice_icon = icon_provider.get_icon("dice", c['text_secondary'], 16)
         self.generate_button.setIcon(dice_icon)
-        self.generate_button.setFixedSize(44, 44)
+        self.generate_button.setFixedSize(spacing['button_height'], spacing['button_height'])
         self.generate_button.clicked.connect(self.open_generator)
-        self.generate_button.setToolTip("Passwort generieren")
+        self.generate_button.setToolTip("Generator")
         self.generate_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.generate_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['background_tertiary']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 10px;
+                border-radius: 8px;
             }}
             QPushButton:hover {{
                 background-color: {c['secondary']};
@@ -209,30 +226,29 @@ class PasswordEntryDialog(QDialog):
             QFrame {{
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 16px;
-                padding: 20px;
+                border-radius: 12px;
             }}
         """)
         notes_layout = QVBoxLayout(self.notes_container)
-        notes_layout.setSpacing(12)
-        notes_layout.setContentsMargins(0, 0, 0, 0)
+        notes_layout.setSpacing(8)
+        notes_layout.setContentsMargins(16, 16, 16, 16)
 
         notes_label = QLabel("Notizen:")
-        notes_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: 13px;")
+        notes_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: {fonts['body']}px; background: transparent; border: none;")
         notes_layout.addWidget(notes_label)
 
         self.notes_input = QTextEdit()
-        self.notes_input.setPlaceholderText("Zusätzliche Informationen...")
-        self.notes_input.setMinimumHeight(100)
-        self.notes_input.setMaximumHeight(120)
+        self.notes_input.setPlaceholderText("Zusätzliche Infos...")
+        self.notes_input.setMinimumHeight(70)
+        self.notes_input.setMaximumHeight(90)
         self.notes_input.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {c['input_background']};
                 color: {c['text_primary']};
                 border: 2px solid {c['input_border']};
-                border-radius: 10px;
-                padding: 12px 16px;
-                font-size: 13px;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: {fonts['body']}px;
             }}
             QTextEdit:focus {{
                 border-color: {c['primary']};
@@ -247,12 +263,12 @@ class PasswordEntryDialog(QDialog):
         # === BUTTONS ===
         self.button_container = QFrame()
         button_layout = QHBoxLayout(self.button_container)
-        button_layout.setSpacing(12)
+        button_layout.setSpacing(10)
         button_layout.setContentsMargins(0, 0, 0, 0)
 
         self.cancel_button = QPushButton("Abbrechen")
-        self.cancel_button.setMinimumHeight(48)
-        self.cancel_button.setMinimumWidth(120)
+        self.cancel_button.setMinimumHeight(spacing['button_height'])
+        self.cancel_button.setMinimumWidth(100)
         self.cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_button.clicked.connect(self.reject)
         self.cancel_button.setStyleSheet(f"""
@@ -260,8 +276,8 @@ class PasswordEntryDialog(QDialog):
                 background-color: {c['background_tertiary']};
                 color: {c['text_primary']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 12px;
-                font-size: 14px;
+                border-radius: 10px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
@@ -272,11 +288,11 @@ class PasswordEntryDialog(QDialog):
 
         button_layout.addStretch()
 
-        save_icon = icon_provider.get_icon("check", "white", 18)
+        save_icon = icon_provider.get_icon("check", "white", 16)
         self.save_button = QPushButton(" Speichern")
         self.save_button.setIcon(save_icon)
-        self.save_button.setMinimumHeight(48)
-        self.save_button.setMinimumWidth(140)
+        self.save_button.setMinimumHeight(spacing['button_height'])
+        self.save_button.setMinimumWidth(120)
         self.save_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_button.clicked.connect(self.save_entry)
         self.save_button.setStyleSheet(f"""
@@ -284,10 +300,10 @@ class PasswordEntryDialog(QDialog):
                 background-color: {c['primary']};
                 color: white;
                 border: none;
-                border-radius: 12px;
-                font-size: 14px;
+                border-radius: 10px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
-                padding: 0 24px;
+                padding: 0 20px;
             }}
             QPushButton:hover {{
                 background-color: {c['primary_hover']};
@@ -297,13 +313,8 @@ class PasswordEntryDialog(QDialog):
 
         main_layout.addWidget(self.button_container)
 
-        # Set main layout
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(main_container)
-
         # Fokus
-        self.name_input.setFocus()
+        QTimer.singleShot(100, lambda: self.name_input.setFocus())
 
     def load_entry_data(self):
         """Lädt die Daten des zu bearbeitenden Eintrags"""
@@ -339,12 +350,12 @@ class PasswordEntryDialog(QDialog):
 
         if self.password_visible:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
-            eye_off_icon = icon_provider.get_icon("eye_off", c['text_secondary'], 18)
+            eye_off_icon = icon_provider.get_icon("eye_off", c['text_secondary'], 16)
             self.toggle_password_button.setIcon(eye_off_icon)
             animator.pulse(self.password_input, 1.01, 150)
         else:
             self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-            eye_icon = icon_provider.get_icon("eye", c['text_secondary'], 18)
+            eye_icon = icon_provider.get_icon("eye", c['text_secondary'], 16)
             self.toggle_password_button.setIcon(eye_icon)
 
     def open_generator(self):
@@ -404,6 +415,3 @@ class PasswordEntryDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Fehler", f"Fehler beim Verschlüsseln: {str(e)}")
-
-
-from PyQt6.QtWidgets import QWidget
