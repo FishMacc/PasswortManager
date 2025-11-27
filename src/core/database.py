@@ -1,161 +1,149 @@
 """
-Datenbank-Verwaltung für den Password Manager
-Verwendet SQLite für lokale Speicherung
+Datenbank-Manager für verschlüsselte Datenbank-Dateien
+
+Arbeitet mit DatabaseFile zusammen, um verschlüsselte .spdb Dateien zu verwalten.
 """
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 from .models import Category, PasswordEntry
+from .database_file import DatabaseFile
 
 
 class DatabaseManager:
-    """Verwaltet alle Datenbankoperationen"""
+    """Verwaltet alle Datenbankoperationen mit verschlüsselten Dateien"""
 
-    def __init__(self, db_path: str = "data/passwords.db"):
+    def __init__(self, encrypted_db_path: str, master_password: str):
         """
         Initialisiert die Datenbankverbindung
 
         Args:
-            db_path: Pfad zur SQLite-Datenbank
+            encrypted_db_path: Pfad zur verschlüsselten .spdb Datei
+            master_password: Master-Passwort zum Entschlüsseln
         """
-        # Stelle sicher, dass das data-Verzeichnis existiert
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-
-        self.db_path = db_path
+        self.encrypted_db_path = encrypted_db_path
+        self.master_password = master_password
+        self.db_file = DatabaseFile(encrypted_db_path, master_password)
+        self.temp_db_path: Optional[str] = None
         self.conn: Optional[sqlite3.Connection] = None
-        self._connect()
-        self._create_tables()
-        self._create_default_categories()
 
-    def _connect(self):
-        """Stellt Verbindung zur Datenbank her"""
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row  # Ermöglicht Zugriff über Spaltennamen
+        # Öffne verschlüsselte Datenbank
+        self._open_encrypted_database()
 
-    def _create_tables(self):
-        """Erstellt die Datenbanktabellen, falls sie noch nicht existieren"""
-        cursor = self.conn.cursor()
+    def _open_encrypted_database(self):
+        """Öffnet und entschlüsselt die Datenbank"""
+        try:
+            # Entschlüssele Datenbank zu temporärer Datei
+            self.temp_db_path = self.db_file.open_database(self.master_password)
 
-        # Users-Tabelle
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                master_password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+            # Verbinde mit temporärer Datenbank
+            self.conn = sqlite3.connect(self.temp_db_path)
+            self.conn.row_factory = sqlite3.Row
 
-        # Categories-Tabelle
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                color TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        except ValueError as e:
+            raise ValueError(f"Fehler beim Öffnen der Datenbank: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Unerwarteter Fehler: {str(e)}")
 
-        # Password-Entries-Tabelle
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS password_entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category_id INTEGER,
-                name TEXT NOT NULL,
-                username TEXT,
-                encrypted_password BLOB NOT NULL,
-                encrypted_notes BLOB,
-                website_url TEXT,
-                totp_secret BLOB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE SET NULL
-            )
-        """)
+    def save_changes(self):
+        """Speichert Änderungen zurück in die verschlüsselte Datei"""
+        if self.conn:
+            self.conn.commit()
 
-        self.conn.commit()
-
-    def _create_default_categories(self):
-        """Erstellt Standard-Kategorien, falls noch keine vorhanden sind"""
-        default_categories = [
-            ("Allgemein", "#808080"),
-            ("Banking", "#4CAF50"),
-            ("Social Media", "#2196F3"),
-            ("E-Mail", "#FF9800"),
-        ]
-
-        cursor = self.conn.cursor()
-        for name, color in default_categories:
+        if self.temp_db_path:
             try:
-                cursor.execute(
-                    "INSERT INTO categories (name, color) VALUES (?, ?)",
-                    (name, color)
-                )
-            except sqlite3.IntegrityError:
-                # Kategorie existiert bereits
-                pass
+                self.db_file.save_database(self.temp_db_path)
+            except Exception as e:
+                raise Exception(f"Fehler beim Speichern: {str(e)}")
 
-        self.conn.commit()
+    def close(self):
+        """Schließt die Datenbank und löscht temporäre Dateien"""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+
+        if self.db_file:
+            self.db_file.close_database()
 
     # ==================== USER MANAGEMENT ====================
 
     def has_master_password(self) -> bool:
-        """Prüft, ob bereits ein Master-Passwort gesetzt wurde"""
+        """Prüft ob ein Master-Passwort existiert"""
         cursor = self.conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM users")
         count = cursor.fetchone()[0]
         return count > 0
 
-    def save_master_password_hash(self, password_hash: str):
-        """
-        Speichert den Hash des Master-Passworts
-
-        Args:
-            password_hash: Argon2-Hash des Master-Passworts
-        """
+    def get_master_password_hash(self) -> Optional[str]:
+        """Gibt den Master-Passwort-Hash zurück"""
         cursor = self.conn.cursor()
+        cursor.execute("SELECT password_hash FROM users LIMIT 1")
+        result = cursor.fetchone()
+        return result['password_hash'] if result else None
+
+    def save_master_password_hash(self, password_hash: str):
+        """Speichert den Master-Passwort-Hash"""
+        cursor = self.conn.cursor()
+
+        # Lösche alte Hashes
+        cursor.execute("DELETE FROM users")
+
+        # Füge neuen Hash ein
         cursor.execute(
-            "INSERT INTO users (master_password_hash) VALUES (?)",
+            "INSERT INTO users (password_hash) VALUES (?)",
             (password_hash,)
         )
-        self.conn.commit()
 
-    def get_master_password_hash(self) -> Optional[str]:
-        """Ruft den gespeicherten Master-Passwort-Hash ab"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT master_password_hash FROM users LIMIT 1")
-        row = cursor.fetchone()
-        return row[0] if row else None
+        self.conn.commit()
+        # Speichere auch in verschlüsselte Datei
+        self.save_changes()
 
     # ==================== CATEGORY MANAGEMENT ====================
 
     def get_all_categories(self) -> List[Category]:
-        """Ruft alle Kategorien ab"""
+        """Gibt alle Kategorien zurück"""
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM categories ORDER BY name")
-        rows = cursor.fetchall()
 
         categories = []
-        for row in rows:
-            categories.append(Category(
-                id=row["id"],
-                name=row["name"],
-                color=row["color"],
-                created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None
-            ))
+        for row in cursor.fetchall():
+            category = Category(
+                id=row['id'],
+                name=row['name'],
+                color=row['color'] or '#808080'
+            )
+            categories.append(category)
 
         return categories
 
-    def add_category(self, name: str, color: str = None) -> int:
+    def get_category_by_id(self, category_id: int) -> Optional[Category]:
+        """Gibt eine Kategorie anhand der ID zurück"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
+        row = cursor.fetchone()
+
+        if row:
+            return Category(
+                id=row['id'],
+                name=row['name'],
+                color=row['color'] or '#808080'
+            )
+        return None
+
+    def add_category(self, name: str, color: str = "#808080") -> int:
         """
         Fügt eine neue Kategorie hinzu
 
         Args:
             name: Name der Kategorie
-            color: Farbe der Kategorie (Hex-Code)
+            color: Farbe der Kategorie (Hex-Format)
 
         Returns:
             ID der neuen Kategorie
+
+        Raises:
+            sqlite3.IntegrityError: Wenn Kategorie bereits existiert
         """
         cursor = self.conn.cursor()
         cursor.execute(
@@ -163,9 +151,10 @@ class DatabaseManager:
             (name, color)
         )
         self.conn.commit()
+        self.save_changes()
         return cursor.lastrowid
 
-    def update_category(self, category_id: int, name: str, color: str = None):
+    def update_category(self, category_id: int, name: str, color: str):
         """Aktualisiert eine Kategorie"""
         cursor = self.conn.cursor()
         cursor.execute(
@@ -173,41 +162,100 @@ class DatabaseManager:
             (name, color, category_id)
         )
         self.conn.commit()
+        self.save_changes()
 
     def delete_category(self, category_id: int):
-        """Löscht eine Kategorie"""
+        """
+        Löscht eine Kategorie
+
+        Hinweis: Password-Entries werden auf NULL gesetzt (ON DELETE SET NULL)
+        """
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM categories WHERE id = ?", (category_id,))
         self.conn.commit()
+        self.save_changes()
 
-    def get_category_by_id(self, category_id: int) -> Optional[Category]:
-        """Ruft eine Kategorie anhand der ID ab"""
+    # ==================== PASSWORD ENTRY MANAGEMENT ====================
+
+    def get_all_password_entries(self) -> List[PasswordEntry]:
+        """Gibt alle Passwort-Einträge zurück"""
         cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
+        cursor.execute("""
+            SELECT * FROM password_entries
+            ORDER BY updated_at DESC
+        """)
+
+        entries = []
+        for row in cursor.fetchall():
+            entry = self._row_to_password_entry(row)
+            entries.append(entry)
+
+        return entries
+
+    def get_password_entries_by_category(self, category_id: int) -> List[PasswordEntry]:
+        """Gibt alle Einträge einer Kategorie zurück"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM password_entries
+            WHERE category_id = ?
+            ORDER BY updated_at DESC
+        """, (category_id,))
+
+        entries = []
+        for row in cursor.fetchall():
+            entry = self._row_to_password_entry(row)
+            entries.append(entry)
+
+        return entries
+
+    def search_password_entries(self, query: str) -> List[PasswordEntry]:
+        """
+        Sucht nach Passwort-Einträgen
+
+        Args:
+            query: Suchbegriff
+
+        Returns:
+            Liste der gefundenen Einträge
+        """
+        cursor = self.conn.cursor()
+        search_pattern = f"%{query}%"
+
+        cursor.execute("""
+            SELECT * FROM password_entries
+            WHERE name LIKE ? OR username LIKE ? OR website_url LIKE ?
+            ORDER BY updated_at DESC
+        """, (search_pattern, search_pattern, search_pattern))
+
+        entries = []
+        for row in cursor.fetchall():
+            entry = self._row_to_password_entry(row)
+            entries.append(entry)
+
+        return entries
+
+    def get_password_entry_by_id(self, entry_id: int) -> Optional[PasswordEntry]:
+        """Gibt einen Passwort-Eintrag anhand der ID zurück"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM password_entries WHERE id = ?", (entry_id,))
         row = cursor.fetchone()
 
         if row:
-            return Category(
-                id=row["id"],
-                name=row["name"],
-                color=row["color"],
-                created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None
-            )
+            return self._row_to_password_entry(row)
         return None
-
-    # ==================== PASSWORD ENTRY MANAGEMENT ====================
 
     def add_password_entry(self, entry: PasswordEntry) -> int:
         """
         Fügt einen neuen Passwort-Eintrag hinzu
 
         Args:
-            entry: Der Passwort-Eintrag
+            entry: Der zu speichernde Eintrag
 
         Returns:
             ID des neuen Eintrags
         """
         cursor = self.conn.cursor()
+
         cursor.execute("""
             INSERT INTO password_entries
             (category_id, name, username, encrypted_password, encrypted_notes, website_url, totp_secret)
@@ -221,16 +269,20 @@ class DatabaseManager:
             entry.website_url,
             entry.totp_secret
         ))
+
         self.conn.commit()
+        self.save_changes()
         return cursor.lastrowid
 
     def update_password_entry(self, entry: PasswordEntry):
-        """Aktualisiert einen Passwort-Eintrag"""
+        """Aktualisiert einen bestehenden Passwort-Eintrag"""
         cursor = self.conn.cursor()
+
         cursor.execute("""
             UPDATE password_entries
-            SET category_id = ?, name = ?, username = ?, encrypted_password = ?,
-                encrypted_notes = ?, website_url = ?, totp_secret = ?, updated_at = ?
+            SET category_id = ?, name = ?, username = ?,
+                encrypted_password = ?, encrypted_notes = ?, website_url = ?,
+                totp_secret = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (
             entry.category_id,
@@ -240,84 +292,37 @@ class DatabaseManager:
             entry.encrypted_notes,
             entry.website_url,
             entry.totp_secret,
-            datetime.now().isoformat(),
             entry.id
         ))
+
         self.conn.commit()
+        self.save_changes()
 
     def delete_password_entry(self, entry_id: int):
         """Löscht einen Passwort-Eintrag"""
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM password_entries WHERE id = ?", (entry_id,))
         self.conn.commit()
+        self.save_changes()
 
-    def get_all_password_entries(self) -> List[PasswordEntry]:
-        """Ruft alle Passwort-Einträge ab"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM password_entries ORDER BY name")
-        rows = cursor.fetchall()
-
-        entries = []
-        for row in rows:
-            entries.append(self._row_to_password_entry(row))
-
-        return entries
-
-    def get_password_entries_by_category(self, category_id: int) -> List[PasswordEntry]:
-        """Ruft alle Passwort-Einträge einer Kategorie ab"""
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "SELECT * FROM password_entries WHERE category_id = ? ORDER BY name",
-            (category_id,)
-        )
-        rows = cursor.fetchall()
-
-        entries = []
-        for row in rows:
-            entries.append(self._row_to_password_entry(row))
-
-        return entries
-
-    def search_password_entries(self, query: str) -> List[PasswordEntry]:
-        """
-        Sucht nach Passwort-Einträgen
-
-        Args:
-            query: Suchbegriff (wird in Name und Username gesucht)
-
-        Returns:
-            Liste der gefundenen Einträge
-        """
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT * FROM password_entries
-            WHERE name LIKE ? OR username LIKE ?
-            ORDER BY name
-        """, (f"%{query}%", f"%{query}%"))
-        rows = cursor.fetchall()
-
-        entries = []
-        for row in rows:
-            entries.append(self._row_to_password_entry(row))
-
-        return entries
-
-    def _row_to_password_entry(self, row) -> PasswordEntry:
-        """Konvertiert eine Datenbankzeile zu einem PasswordEntry-Objekt"""
+    def _row_to_password_entry(self, row: sqlite3.Row) -> PasswordEntry:
+        """Konvertiert eine Datenbank-Zeile zu einem PasswordEntry-Objekt"""
         return PasswordEntry(
-            id=row["id"],
-            category_id=row["category_id"],
-            name=row["name"],
-            username=row["username"],
-            encrypted_password=row["encrypted_password"],
-            encrypted_notes=row["encrypted_notes"],
-            website_url=row["website_url"],
-            totp_secret=row["totp_secret"],
-            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
-            updated_at=datetime.fromisoformat(row["updated_at"]) if row["updated_at"] else None
+            id=row['id'],
+            category_id=row['category_id'],
+            name=row['name'],
+            username=row['username'],
+            encrypted_password=row['encrypted_password'],
+            encrypted_notes=row['encrypted_notes'],
+            website_url=row['website_url'],
+            totp_secret=row['totp_secret'],
+            created_at=row['created_at'],
+            updated_at=row['updated_at']
         )
 
-    def close(self):
-        """Schließt die Datenbankverbindung"""
-        if self.conn:
-            self.conn.close()
+    def __del__(self):
+        """Destruktor - stellt sicher, dass die Datenbank geschlossen wird"""
+        try:
+            self.close()
+        except Exception:
+            pass
