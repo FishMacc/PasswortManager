@@ -3,10 +3,10 @@ Login-Dialog für Master-Passwort (für bestehende Datenbanken)
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QGraphicsDropShadowEffect, QFrame
+    QPushButton, QMessageBox, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 from ..auth.master_password import master_password_manager
 from ..core.database import DatabaseManager
 from ..core.encryption import encryption_manager
@@ -26,20 +26,17 @@ class LoginDialog(QDialog):
         self.master_password = None
         self.setup_ui()
 
-        # Fade-in Animation
-        QTimer.singleShot(50, lambda: animator.fade_in(self.main_container, 300))
-
     def setup_ui(self):
         """Erstellt das moderne UI des Login-Dialogs"""
         self.setWindowTitle("SecurePass Manager - Login")
         self.setModal(True)
-        self.setFixedSize(500, 400)
+        self.setMinimumSize(500, 450)
+        self.resize(500, 450)
 
         c = theme.get_colors()
 
-        # Haupt-Container
-        self.main_container = QFrame()
-        main_layout = QVBoxLayout(self.main_container)
+        # Haupt-Layout direkt auf Dialog
+        main_layout = QVBoxLayout(self)
         main_layout.setSpacing(24)
         main_layout.setContentsMargins(50, 50, 50, 50)
 
@@ -59,7 +56,7 @@ class LoginDialog(QDialog):
         # Titel
         title = QLabel("SecurePass Manager")
         title_font = QFont()
-        title_font.setPointSize(26)
+        title_font.setPointSize(24)
         title_font.setBold(True)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -69,7 +66,7 @@ class LoginDialog(QDialog):
         # Untertitel
         subtitle = QLabel("Datenbank entsperren")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: 14px; margin-bottom: 10px;")
+        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: 14px;")
         main_layout.addWidget(subtitle)
 
         # Datenbank-Pfad Anzeige
@@ -86,7 +83,7 @@ class LoginDialog(QDialog):
         """)
         main_layout.addWidget(db_name_label)
 
-        main_layout.addSpacing(10)
+        main_layout.addSpacing(20)
 
         # Passwort-Feld Container
         password_container = QFrame()
@@ -95,14 +92,14 @@ class LoginDialog(QDialog):
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 16px;
-                padding: 24px;
             }}
         """)
         password_layout = QVBoxLayout(password_container)
         password_layout.setSpacing(12)
+        password_layout.setContentsMargins(24, 24, 24, 24)
 
         password_label = QLabel("Master-Passwort:")
-        password_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: 13px;")
+        password_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: 13px; background: transparent; border: none;")
         password_layout.addWidget(password_label)
 
         self.password_input = QLineEdit()
@@ -151,13 +148,8 @@ class LoginDialog(QDialog):
         """)
         main_layout.addWidget(self.login_button)
 
-        # Layout setzen
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(self.main_container)
-
-        # Fokus auf Passwort-Feld
-        self.password_input.setFocus()
+        # Fokus auf Passwort-Feld nach kurzer Verzögerung
+        QTimer.singleShot(100, lambda: self.password_input.setFocus())
 
     def handle_login(self):
         """Behandelt den Login-Versuch"""
