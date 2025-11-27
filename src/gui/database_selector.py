@@ -45,8 +45,15 @@ class DatabaseSelectorDialog(QDialog):
         self.setWindowTitle("SecurePass Manager - Datenbank auswählen")
         self.setModal(True)
 
-        # Responsive Setup
-        responsive.setup_dialog(self, base_width=500, base_height=450, min_width=400, min_height=350)
+        # Feste Größe basierend auf tatsächlichem Inhalt
+        self.setMinimumSize(520, 480)
+        self.resize(520, 520)
+
+        # Zentriere auf Bildschirm
+        screen_info = responsive.get_screen_info()
+        x = (screen_info['screen_width'] - 520) // 2
+        y = (screen_info['screen_height'] - 520) // 2
+        self.move(x, y)
         fonts = responsive.get_font_sizes()
         spacing = responsive.get_spacing()
 

@@ -32,8 +32,15 @@ class LoginDialog(QDialog):
         self.setWindowTitle("SecurePass Manager - Login")
         self.setModal(True)
 
-        # Responsive Setup
-        responsive.setup_dialog(self, base_width=450, base_height=400, min_width=350, min_height=300)
+        # Feste Größe basierend auf tatsächlichem Inhalt
+        self.setMinimumSize(420, 400)
+        self.resize(420, 420)
+
+        # Zentriere auf Bildschirm
+        screen_info = responsive.get_screen_info()
+        x = (screen_info['screen_width'] - 420) // 2
+        y = (screen_info['screen_height'] - 420) // 2
+        self.move(x, y)
         fonts = responsive.get_font_sizes()
         spacing = responsive.get_spacing()
 
