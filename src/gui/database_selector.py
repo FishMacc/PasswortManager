@@ -46,7 +46,7 @@ class DatabaseSelectorDialog(QDialog):
         self.setModal(True)
 
         # Responsive Setup
-        responsive.setup_dialog(self, base_width=650, base_height=550, min_width=450, min_height=400)
+        responsive.setup_dialog(self, base_width=500, base_height=450, min_width=400, min_height=350)
         fonts = responsive.get_font_sizes()
         spacing = responsive.get_spacing()
 

@@ -42,14 +42,14 @@ class ResponsiveHelper:
         Bestimmt die Größenkategorie des Bildschirms
 
         Returns:
-            'small' (< 900px), 'medium' (900-1400px), 'large' (> 1400px)
+            'small' (< 1000px), 'medium' (1000-1600px), 'large' (> 1600px)
         """
         screen_info = ResponsiveHelper.get_screen_info()
         width = screen_info['screen_width']
 
-        if width < 900:
+        if width < 1000:
             return 'small'
-        elif width < 1400:
+        elif width < 1600:
             return 'medium'
         else:
             return 'large'
@@ -72,23 +72,23 @@ class ResponsiveHelper:
         screen_width = screen_info['screen_width']
         screen_height = screen_info['screen_height']
 
-        # Maximale Dialog-Größe: 85% der Bildschirmgröße
-        max_width = int(screen_width * 0.85)
-        max_height = int(screen_height * 0.85)
+        # Maximale Dialog-Größe: 75% der Bildschirmgröße (reduziert von 85%)
+        max_width = int(screen_width * 0.75)
+        max_height = int(screen_height * 0.75)
 
-        # Skaliere basierend auf Bildschirmgröße
-        if screen_width < 900:
-            # Kleine Bildschirme: 90% der Breite
-            width = min(int(screen_width * 0.90), base_width)
-            height = min(int(screen_height * 0.85), base_height)
+        # Skaliere basierend auf Bildschirmgröße - VIEL KLEINER
+        if screen_width < 1000:
+            # Kleine Bildschirme: 80% der Breite
+            width = min(int(screen_width * 0.80), base_width)
+            height = min(int(screen_height * 0.75), base_height)
         elif screen_width < 1400:
             # Mittlere Bildschirme: 70% der Basis-Größe
-            width = min(int(base_width * 0.85), max_width)
-            height = min(int(base_height * 0.85), max_height)
+            width = min(int(base_width * 0.75), max_width)
+            height = min(int(base_height * 0.75), max_height)
         else:
-            # Große Bildschirme: Volle Basis-Größe
-            width = min(base_width, max_width)
-            height = min(base_height, max_height)
+            # Große Bildschirme: 80% der Basis-Größe
+            width = min(int(base_width * 0.8), max_width)
+            height = min(int(base_height * 0.8), max_height)
 
         # Stelle sicher, dass Mindestgrößen eingehalten werden
         width = max(width, min_width)
@@ -108,25 +108,25 @@ class ResponsiveHelper:
 
         sizes = {
             'small': {
+                'title': 16,
+                'subtitle': 11,
+                'body': 11,
+                'small': 9,
+                'button': 12
+            },
+            'medium': {
                 'title': 18,
                 'subtitle': 12,
                 'body': 12,
                 'small': 10,
                 'button': 13
             },
-            'medium': {
-                'title': 22,
+            'large': {
+                'title': 20,
                 'subtitle': 13,
                 'body': 13,
                 'small': 11,
-                'button': 14
-            },
-            'large': {
-                'title': 26,
-                'subtitle': 14,
-                'body': 14,
-                'small': 12,
-                'button': 15
+                'button': 13
             }
         }
 
@@ -144,25 +144,25 @@ class ResponsiveHelper:
 
         spacing = {
             'small': {
-                'margins': 20,
-                'section_spacing': 16,
-                'element_spacing': 8,
-                'icon_size': 40,
-                'button_height': 44
+                'margins': 15,
+                'section_spacing': 12,
+                'element_spacing': 6,
+                'icon_size': 32,
+                'button_height': 36
             },
             'medium': {
-                'margins': 30,
-                'section_spacing': 20,
-                'element_spacing': 10,
-                'icon_size': 48,
-                'button_height': 48
+                'margins': 20,
+                'section_spacing': 14,
+                'element_spacing': 8,
+                'icon_size': 36,
+                'button_height': 40
             },
             'large': {
-                'margins': 40,
-                'section_spacing': 24,
-                'element_spacing': 12,
-                'icon_size': 64,
-                'button_height': 52
+                'margins': 25,
+                'section_spacing': 16,
+                'element_spacing': 10,
+                'icon_size': 40,
+                'button_height': 42
             }
         }
 

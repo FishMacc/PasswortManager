@@ -33,7 +33,7 @@ class LoginDialog(QDialog):
         self.setModal(True)
 
         # Responsive Setup
-        responsive.setup_dialog(self, base_width=500, base_height=450, min_width=400, min_height=350)
+        responsive.setup_dialog(self, base_width=450, base_height=400, min_width=350, min_height=300)
         fonts = responsive.get_font_sizes()
         spacing = responsive.get_spacing()
 
