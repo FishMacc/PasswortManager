@@ -4,7 +4,17 @@ Ein sicherer Passwort-Manager mit Master-Passwort und modernnem PyQt6-Interface.
 
 ## Features
 
-### ✨ Neues modernes Design (v1.1)
+### ✨ Neues in Version 1.1
+
+**Verschlüsselte Datenbank-Dateien (wie KeePass):**
+- **Einzelne .spdb Datei** - Gesamte Datenbank in einer verschlüsselten Datei
+- **Cloud-Sync fähig** - Einfach mit Dropbox, Google Drive, etc. synchronisieren
+- **Frei wählbarer Speicherort** - Speichere Datenbank wo du willst
+- **Mehrere Datenbanken** - Erstelle verschiedene Datenbanken (Privat, Arbeit, etc.)
+- **Kürzlich verwendet** - Schneller Zugriff auf letzte Datenbanken
+- **Vollständige AES-256 Verschlüsselung** der gesamten Datenbank-Datei
+
+**Modernes Design:**
 - **Apple-Stil UI** mit flüssigen Animationen und Übergängen
 - **SVG-Icons** für gestochen scharfe Darstellung auf allen Displays
 - **Responsive Design** optimiert für alle Bildschirmgrößen
@@ -67,11 +77,18 @@ Ein sicherer Passwort-Manager mit Master-Passwort und modernnem PyQt6-Interface.
 
 ## Erste Schritte
 
-### 1. Master-Passwort erstellen
-Beim ersten Start wirst du aufgefordert, ein Master-Passwort zu erstellen:
-- Wähle ein starkes Passwort (mindestens 8 Zeichen)
-- Merke dir dieses Passwort gut - es kann nicht wiederhergestellt werden!
-- Das Master-Passwort verschlüsselt alle deine gespeicherten Daten
+### 1. Datenbank erstellen
+Beim ersten Start wirst du aufgefordert, eine Datenbank zu erstellen:
+- Wähle "Neue Datenbank erstellen"
+- Gib einen Namen ein (z.B. "Meine Passwörter")
+- Wähle einen Speicherort (Standard: Dokumente/SecurePass/)
+- Erstelle ein starkes Master-Passwort (mindestens 8 Zeichen)
+- **Wichtig**: Das Master-Passwort kann nicht wiederhergestellt werden!
+
+**Für Cloud-Sync:**
+- Wähle einen Cloud-Ordner als Speicherort (z.B. Dropbox/SecurePass/)
+- Die .spdb Datei wird automatisch synchronisiert
+- Auf anderen Geräten: "Datenbank öffnen" und zur Cloud-Datei navigieren
 
 ### 2. Einträge hinzufügen
 - Klicke auf "+ Neuer Eintrag"
@@ -112,9 +129,11 @@ Beim ersten Start wirst du aufgefordert, ein Master-Passwort zu erstellen:
 - Dies verhindert, dass Passwörter unbeabsichtigt woanders eingefügt werden
 
 ### Backup
-- Deine Daten werden in `data/passwords.db` gespeichert
-- Erstelle regelmäßig Backups dieser Datei
-- Die Datenbank ist verschlüsselt und kann nur mit dem Master-Passwort geöffnet werden
+- Deine Daten werden in einer `.spdb` Datei gespeichert (Standard: Dokumente/SecurePass/)
+- **Empfohlen**: Speichere die Datenbank in einem Cloud-Ordner für automatisches Backup
+- **Alternativ**: Kopiere die .spdb Datei regelmäßig auf einen externen Speicher
+- Die Datenbank-Datei ist vollständig verschlüsselt und kann nur mit dem Master-Passwort geöffnet werden
+- **Versionierung**: Viele Cloud-Dienste bewahren alte Versionen auf - nutze dies für zusätzliche Sicherheit!
 
 ## Dateistruktur
 
