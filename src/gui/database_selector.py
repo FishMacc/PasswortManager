@@ -15,6 +15,7 @@ from ..core.database_file import DatabaseFile
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
+from .responsive import responsive
 
 
 class DatabaseSelectorDialog(QDialog):
@@ -43,15 +44,18 @@ class DatabaseSelectorDialog(QDialog):
         """Erstellt das UI"""
         self.setWindowTitle("SecurePass Manager - Datenbank auswählen")
         self.setModal(True)
-        self.setMinimumSize(650, 550)
-        self.resize(650, 550)
+
+        # Responsive Setup
+        responsive.setup_dialog(self, base_width=650, base_height=550, min_width=450, min_height=400)
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
 
         c = theme.get_colors()
 
         # Haupt-Layout
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(30)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(spacing['section_spacing'])
+        main_layout.setContentsMargins(spacing['margins'], spacing['margins'], spacing['margins'], spacing['margins'])
 
         # === HEADER ===
         self.header_container = QFrame()
@@ -61,12 +65,12 @@ class DatabaseSelectorDialog(QDialog):
 
         # Icon und Titel
         title_row = QHBoxLayout()
-        title_row.setSpacing(15)
+        title_row.setSpacing(spacing['element_spacing'])
 
         shield_icon = QLabel()
-        shield_pixmap = icon_provider.get_pixmap("shield", c['primary'], 48)
+        shield_pixmap = icon_provider.get_pixmap("shield", c['primary'], spacing['icon_size'])
         shield_icon.setPixmap(shield_pixmap)
-        shield_icon.setFixedSize(48, 48)
+        shield_icon.setFixedSize(spacing['icon_size'], spacing['icon_size'])
         title_row.addWidget(shield_icon)
 
         title_container = QVBoxLayout()
@@ -74,14 +78,14 @@ class DatabaseSelectorDialog(QDialog):
 
         title = QLabel("Willkommen bei SecurePass")
         title_font = QFont()
-        title_font.setPointSize(24)
+        title_font.setPointSize(fonts['title'])
         title_font.setBold(True)
         title.setFont(title_font)
         title.setStyleSheet(f"color: {c['text_primary']};")
         title_container.addWidget(title)
 
         subtitle = QLabel("Wähle eine Datenbank oder erstelle eine neue")
-        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: 14px;")
+        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['subtitle']}px;")
         title_container.addWidget(subtitle)
 
         title_row.addLayout(title_container)
@@ -108,7 +112,7 @@ class DatabaseSelectorDialog(QDialog):
 
             recent_label = QLabel("Kürzlich verwendet")
             recent_label_font = QFont()
-            recent_label_font.setPointSize(13)
+            recent_label_font.setPointSize(fonts['body'])
             recent_label_font.setBold(True)
             recent_label.setFont(recent_label_font)
             recent_label.setStyleSheet(f"color: {c['text_primary']}; background: transparent; border: none;")
@@ -183,7 +187,7 @@ class DatabaseSelectorDialog(QDialog):
         footer_layout.setSpacing(12)
 
         exit_button = QPushButton("Beenden")
-        exit_button.setMinimumHeight(48)
+        exit_button.setMinimumHeight(spacing['button_height'])
         exit_button.setMinimumWidth(120)
         exit_button.setCursor(Qt.CursorShape.PointingHandCursor)
         exit_button.clicked.connect(self.reject)
@@ -193,7 +197,7 @@ class DatabaseSelectorDialog(QDialog):
                 color: {c['text_primary']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 12px;
-                font-size: 14px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
@@ -209,13 +213,16 @@ class DatabaseSelectorDialog(QDialog):
     def _create_action_button(self, title: str, description: str, icon_name: str, accent_color: str) -> QPushButton:
         """Erstellt einen Action-Button"""
         c = theme.get_colors()
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
 
         button = QPushButton(f"  {title}")
-        button.setMinimumHeight(80)
+        button.setMinimumHeight(max(70, spacing['button_height'] + 20))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
 
         # Icon setzen
-        icon = icon_provider.get_icon(icon_name, accent_color, 28)
+        icon_size = int(spacing['icon_size'] * 0.5)
+        icon = icon_provider.get_icon(icon_name, accent_color, icon_size)
         button.setIcon(icon)
         button.setIconSize(button.iconSize() * 1.5)
 
@@ -226,7 +233,7 @@ class DatabaseSelectorDialog(QDialog):
                 border-radius: 16px;
                 text-align: left;
                 padding-left: 20px;
-                font-size: 14px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
                 color: {c['text_primary']};
             }}

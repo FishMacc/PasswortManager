@@ -13,6 +13,7 @@ from ..core.encryption import encryption_manager
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
+from .responsive import responsive
 
 
 class LoginDialog(QDialog):
@@ -30,24 +31,27 @@ class LoginDialog(QDialog):
         """Erstellt das moderne UI des Login-Dialogs"""
         self.setWindowTitle("SecurePass Manager - Login")
         self.setModal(True)
-        self.setMinimumSize(500, 450)
-        self.resize(500, 450)
+
+        # Responsive Setup
+        responsive.setup_dialog(self, base_width=500, base_height=450, min_width=400, min_height=350)
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
 
         c = theme.get_colors()
 
         # Haupt-Layout direkt auf Dialog
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(24)
-        main_layout.setContentsMargins(50, 50, 50, 50)
+        main_layout.setSpacing(spacing['section_spacing'])
+        main_layout.setContentsMargins(spacing['margins'], spacing['margins'], spacing['margins'], spacing['margins'])
 
         # Logo/Icon Bereich
         icon_container = QHBoxLayout()
         icon_container.addStretch()
 
         shield_icon = QLabel()
-        shield_pixmap = icon_provider.get_pixmap("shield", c['primary'], 64)
+        shield_pixmap = icon_provider.get_pixmap("shield", c['primary'], spacing['icon_size'])
         shield_icon.setPixmap(shield_pixmap)
-        shield_icon.setFixedSize(64, 64)
+        shield_icon.setFixedSize(spacing['icon_size'], spacing['icon_size'])
         icon_container.addWidget(shield_icon)
 
         icon_container.addStretch()
@@ -56,7 +60,7 @@ class LoginDialog(QDialog):
         # Titel
         title = QLabel("SecurePass Manager")
         title_font = QFont()
-        title_font.setPointSize(24)
+        title_font.setPointSize(fonts['title'])
         title_font.setBold(True)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -66,7 +70,7 @@ class LoginDialog(QDialog):
         # Untertitel
         subtitle = QLabel("Datenbank entsperren")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: 14px;")
+        subtitle.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['subtitle']}px;")
         main_layout.addWidget(subtitle)
 
         # Datenbank-Pfad Anzeige
@@ -76,7 +80,7 @@ class LoginDialog(QDialog):
         db_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         db_name_label.setStyleSheet(f"""
             color: {c['text_tertiary']};
-            font-size: 12px;
+            font-size: {fonts['small']}px;
             padding: 8px 16px;
             background-color: {c['background_tertiary']};
             border-radius: 8px;
@@ -99,13 +103,13 @@ class LoginDialog(QDialog):
         password_layout.setContentsMargins(24, 24, 24, 24)
 
         password_label = QLabel("Master-Passwort:")
-        password_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: 13px; background: transparent; border: none;")
+        password_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: {fonts['body']}px; background: transparent; border: none;")
         password_layout.addWidget(password_label)
 
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setPlaceholderText("Passwort eingeben...")
-        self.password_input.setMinimumHeight(48)
+        self.password_input.setMinimumHeight(spacing['button_height'])
         self.password_input.returnPressed.connect(self.handle_login)
         self.password_input.setStyleSheet(f"""
             QLineEdit {{
@@ -114,7 +118,7 @@ class LoginDialog(QDialog):
                 border: 2px solid {c['input_border']};
                 border-radius: 12px;
                 padding: 0 16px;
-                font-size: 14px;
+                font-size: {fonts['body']}px;
             }}
             QLineEdit:focus {{
                 border-color: {c['primary']};
@@ -130,12 +134,12 @@ class LoginDialog(QDialog):
         lock_icon = icon_provider.get_icon("unlock", "white", 18)
         self.login_button = QPushButton(" Entsperren")
         self.login_button.setIcon(lock_icon)
-        self.login_button.setMinimumHeight(52)
+        self.login_button.setMinimumHeight(spacing['button_height'])
         self.login_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.login_button.clicked.connect(self.handle_login)
         self.login_button.setStyleSheet(f"""
             QPushButton {{
-                font-size: 15px;
+                font-size: {fonts['button']}px;
                 font-weight: 700;
                 background-color: {c['primary']};
                 color: white;

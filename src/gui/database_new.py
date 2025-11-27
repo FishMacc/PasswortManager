@@ -3,7 +3,7 @@ Dialog zum Erstellen einer neuen Datenbank
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QFileDialog, QMessageBox, QFrame
+    QLineEdit, QFileDialog, QMessageBox, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
@@ -14,6 +14,7 @@ from ..auth.master_password import master_password_manager
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
+from .responsive import responsive
 
 
 class NewDatabaseDialog(QDialog):
@@ -29,40 +30,46 @@ class NewDatabaseDialog(QDialog):
 
     def animate_in(self):
         """Animiert den Dialog beim Öffnen"""
-        animator.fade_in(self.header_container, 200)
-        QTimer.singleShot(100, lambda: animator.fade_in(self.form_container, 250))
-        QTimer.singleShot(150, lambda: animator.fade_in(self.button_container, 250))
+        if hasattr(self, 'header_container'):
+            animator.fade_in(self.header_container, 200)
+        if hasattr(self, 'form_container'):
+            QTimer.singleShot(100, lambda: animator.fade_in(self.form_container, 250))
+        if hasattr(self, 'button_container'):
+            QTimer.singleShot(150, lambda: animator.fade_in(self.button_container, 250))
 
     def setup_ui(self):
         """Erstellt das UI"""
         self.setWindowTitle("Neue Datenbank erstellen")
         self.setModal(True)
-        self.setMinimumSize(600, 520)
-        self.resize(600, 520)
+
+        # Responsive Setup
+        responsive.setup_dialog(self, base_width=600, base_height=520, min_width=450, min_height=400)
+        fonts = responsive.get_font_sizes()
+        spacing = responsive.get_spacing()
 
         c = theme.get_colors()
 
-        # Haupt-Container
-        main_container = QWidget()
-        main_layout = QVBoxLayout(main_container)
-        main_layout.setSpacing(24)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        # Haupt-Layout direkt auf Dialog
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(spacing['section_spacing'])
+        main_layout.setContentsMargins(spacing['margins'], spacing['margins'], spacing['margins'], spacing['margins'])
 
         # === HEADER ===
         self.header_container = QFrame()
         header_layout = QHBoxLayout(self.header_container)
-        header_layout.setSpacing(15)
+        header_layout.setSpacing(spacing['element_spacing'])
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         icon_label = QLabel()
-        icon_pixmap = icon_provider.get_pixmap("plus", c['primary'], 32)
+        icon_size = int(spacing['icon_size'] * 0.6)
+        icon_pixmap = icon_provider.get_pixmap("plus", c['primary'], icon_size)
         icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(32, 32)
+        icon_label.setFixedSize(icon_size, icon_size)
         header_layout.addWidget(icon_label)
 
         title = QLabel("Neue Datenbank erstellen")
         title_font = QFont()
-        title_font.setPointSize(22)
+        title_font.setPointSize(fonts['title'])
         title_font.setBold(True)
         title.setFont(title_font)
         title.setStyleSheet(f"color: {c['text_primary']};")
@@ -78,23 +85,22 @@ class NewDatabaseDialog(QDialog):
                 background-color: {c['surface']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 16px;
-                padding: 24px;
             }}
         """)
         form_layout = QVBoxLayout(self.form_container)
-        form_layout.setSpacing(20)
-        form_layout.setContentsMargins(0, 0, 0, 0)
+        form_layout.setSpacing(spacing['element_spacing'] + 4)
+        form_layout.setContentsMargins(20, 20, 20, 20)
 
-        label_style = f"color: {c['text_primary']}; font-weight: 600; font-size: 13px;"
+        label_style = f"color: {c['text_primary']}; font-weight: 600; font-size: {fonts['body']}px; background: transparent; border: none;"
         input_style = f"""
             QLineEdit {{
                 background-color: {c['input_background']};
                 color: {c['text_primary']};
                 border: 2px solid {c['input_border']};
                 border-radius: 10px;
-                padding: 12px 16px;
-                min-height: 20px;
-                font-size: 13px;
+                padding: 0 16px;
+                min-height: {spacing['button_height'] - 8}px;
+                font-size: {fonts['body']}px;
             }}
             QLineEdit:focus {{
                 border-color: {c['primary']};
@@ -130,7 +136,7 @@ class NewDatabaseDialog(QDialog):
         browse_button = QPushButton()
         folder_icon = icon_provider.get_icon("folder", c['text_secondary'], 18)
         browse_button.setIcon(folder_icon)
-        browse_button.setFixedSize(44, 44)
+        browse_button.setFixedSize(spacing['button_height'], spacing['button_height'])
         browse_button.setCursor(Qt.CursorShape.PointingHandCursor)
         browse_button.setToolTip("Durchsuchen...")
         browse_button.clicked.connect(self.browse_location)
@@ -185,7 +191,7 @@ class NewDatabaseDialog(QDialog):
             background-color: {c['background_tertiary']};
             padding: 12px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: {fonts['small']}px;
         """)
         form_layout.addWidget(warning)
 
@@ -200,7 +206,7 @@ class NewDatabaseDialog(QDialog):
         button_layout.setContentsMargins(0, 0, 0, 0)
 
         cancel_button = QPushButton("Abbrechen")
-        cancel_button.setMinimumHeight(48)
+        cancel_button.setMinimumHeight(spacing['button_height'])
         cancel_button.setMinimumWidth(120)
         cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel_button.clicked.connect(self.reject)
@@ -210,7 +216,7 @@ class NewDatabaseDialog(QDialog):
                 color: {c['text_primary']};
                 border: 2px solid {c['surface_border']};
                 border-radius: 12px;
-                font-size: 14px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
@@ -224,7 +230,7 @@ class NewDatabaseDialog(QDialog):
         create_icon = icon_provider.get_icon("check", "white", 18)
         self.create_button = QPushButton(" Erstellen")
         self.create_button.setIcon(create_icon)
-        self.create_button.setMinimumHeight(48)
+        self.create_button.setMinimumHeight(spacing['button_height'])
         self.create_button.setMinimumWidth(140)
         self.create_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.create_button.clicked.connect(self.create_database)
@@ -234,7 +240,7 @@ class NewDatabaseDialog(QDialog):
                 color: white;
                 border: none;
                 border-radius: 12px;
-                font-size: 14px;
+                font-size: {fonts['button']}px;
                 font-weight: 600;
                 padding: 0 24px;
             }}
@@ -246,14 +252,9 @@ class NewDatabaseDialog(QDialog):
 
         main_layout.addWidget(self.button_container)
 
-        # Set main layout
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(main_container)
-
         # Fokus
-        self.name_input.setFocus()
-        self.name_input.selectAll()
+        QTimer.singleShot(100, lambda: self.name_input.setFocus())
+        QTimer.singleShot(110, lambda: self.name_input.selectAll())
 
     def browse_location(self):
         """Öffnet Datei-Dialog zum Auswählen des Speicherorts"""
@@ -342,6 +343,3 @@ class NewDatabaseDialog(QDialog):
                 "Fehler",
                 f"Fehler beim Erstellen der Datenbank:\n{str(e)}"
             )
-
-
-from PyQt6.QtWidgets import QWidget
