@@ -4,6 +4,14 @@ Ein sicherer Passwort-Manager mit Master-Passwort und modernnem PyQt6-Interface.
 
 ## Features
 
+### ✨ Neues modernes Design (v1.1)
+- **Apple-Stil UI** mit flüssigen Animationen und Übergängen
+- **SVG-Icons** für gestochen scharfe Darstellung auf allen Displays
+- **Responsive Design** optimiert für alle Bildschirmgrößen
+- **Smooth Animationen** (Fade, Slide, Scale, Pulse) für bessere UX
+- **Dark & Light Mode** mit sofortigem Themenwechsel
+- **Verbesserte Bedienbarkeit** durch moderne, intuitive Oberfläche
+
 ### Sicherheit
 - **AES-256 Verschlüsselung** für alle Passwörter und Notizen
 - **Argon2id Hashing** für das Master-Passwort
@@ -152,10 +160,13 @@ PasswortManager/
 - **Tabellen**: users, categories, password_entries
 - **Verschlüsselte Felder**: password, notes, totp_secret
 
-### GUI
+### GUI & Design
 - **Framework**: PyQt6
-- **Layout**: Responsive mit Splitter
-- **Style**: Moderne, minimalistische Oberfläche
+- **Icons**: SVG-basiert für skalierbare, gestochen scharfe Darstellung
+- **Animationen**: Smooth Transitions (Fade, Slide, Scale, Pulse, Shake)
+- **Layout**: Vollständig responsive mit modernen Abständen
+- **Style**: Apple-inspiriertes Design mit Dark & Light Mode
+- **Responsive**: Mindestgrößen für alle Dialoge und optimierte Layouts
 
 ## Häufige Fragen
 
