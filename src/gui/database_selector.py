@@ -127,7 +127,7 @@ class DatabaseSelectorDialog(QDialog):
 
             # Liste der kürzlich verwendeten Datenbanken
             self.recent_list = QListWidget()
-            self.recent_list.setMaximumHeight(150)
+            self.recent_list.setMaximumHeight(80)
             self.recent_list.setStyleSheet(f"""
                 QListWidget {{
                     background-color: {c['background']};

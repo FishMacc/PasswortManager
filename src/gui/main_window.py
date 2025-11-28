@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
         header.setStyleSheet(f"""
             QFrame {{
                 background-color: {c['surface']};
-                border-bottom: 2px solid {c['surface_border']};
+                border: none;
             }}
         """)
 
@@ -237,12 +237,6 @@ class MainWindow(QMainWindow):
         categories_label.setFont(categories_font)
         categories_label.setStyleSheet(f"color: {c['text_primary']}; padding-left: 5px;")
         layout.addWidget(categories_label)
-
-        # Separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet(f"background-color: {c['surface_border']};")
-        layout.addWidget(separator)
 
         # Kategorie-Buttons Container
         self.categories_container = QVBoxLayout()

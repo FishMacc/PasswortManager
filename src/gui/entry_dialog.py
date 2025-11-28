@@ -125,6 +125,15 @@ class PasswordEntryDialog(QDialog):
             QLineEdit:focus, QComboBox:focus {{
                 border-color: {c['primary']};
             }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 30px;
+            }}
+            QComboBox::down-arrow {{
+                image: url(assets/icons/chevron-down.svg);
+                width: 16px;
+                height: 16px;
+            }}
         """
 
         # Name

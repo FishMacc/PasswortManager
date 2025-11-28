@@ -434,14 +434,6 @@ class PasswordGeneratorDialog(QDialog):
 
         main_layout.addLayout(button_layout)
 
-        # Set main layout
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(main_container)
-
-        # Fade-in Animation
-        QTimer.singleShot(50, lambda: animator.fade_in(main_container, 300))
-
     def on_options_changed(self):
         """Wird aufgerufen, wenn sich die Generator-Optionen ändern"""
         self.length_label.setText(str(self.length_slider.value()))
