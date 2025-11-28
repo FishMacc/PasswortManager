@@ -16,6 +16,7 @@ from .widgets import PasswordEntryWidget, CategoryButton
 from .entry_dialog import PasswordEntryDialog
 from .login_dialog import LoginDialog
 from .themes import theme, ThemeMode
+from .icons import icon_provider
 
 
 class MainWindow(QMainWindow):
