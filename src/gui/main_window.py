@@ -132,7 +132,7 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        layout = QHBoxLayout()
+        layout = QHBoxLayout(header)
         layout.setContentsMargins(20, 10, 20, 10)
 
         # Logo und Titel
@@ -208,7 +208,6 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(self.lock_button)
 
-        header.setLayout(layout)
         return header
 
     def create_sidebar(self) -> QWidget:
