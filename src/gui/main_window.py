@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         c = theme.get_colors()
 
         header = QFrame()
-        header.setFixedHeight(70)
+        header.setFixedHeight(90)
         header.setStyleSheet(f"""
             QFrame {{
                 background-color: {c['surface']};
@@ -166,9 +166,12 @@ class MainWindow(QMainWindow):
 
         layout.addStretch()
 
-        # Dark Mode Toggle
-        self.theme_button = QPushButton("◐")
-        self.theme_button.setFixedSize(45, 45)
+        # Dark Mode Toggle mit Icon
+        self.theme_button = QPushButton()
+        moon_icon = icon_provider.get_icon("moon", c['text_primary'], 28)
+        self.theme_button.setIcon(moon_icon)
+        self.theme_button.setIconSize(self.theme_button.iconSize() * 1.8)
+        self.theme_button.setFixedSize(70, 70)
         self.theme_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.theme_button.clicked.connect(self.toggle_theme)
         self.theme_button.setToolTip("Dark Mode umschalten (Ctrl+D)")
@@ -176,9 +179,7 @@ class MainWindow(QMainWindow):
             QPushButton {{
                 background-color: {c['background_tertiary']};
                 border: 2px solid {c['surface_border']};
-                border-radius: 12px;
-                font-size: 24px;
-                font-weight: bold;
+                border-radius: 16px;
             }}
             QPushButton:hover {{
                 background-color: {c['primary']};
@@ -187,9 +188,12 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(self.theme_button)
 
-        # Lock Button
-        self.lock_button = QPushButton("⏻")
-        self.lock_button.setFixedSize(45, 45)
+        # Lock Button mit Icon
+        self.lock_button = QPushButton()
+        power_icon = icon_provider.get_icon("power", "white", 28)
+        self.lock_button.setIcon(power_icon)
+        self.lock_button.setIconSize(self.lock_button.iconSize() * 1.8)
+        self.lock_button.setFixedSize(70, 70)
         self.lock_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lock_button.clicked.connect(self.lock_application)
         self.lock_button.setToolTip("Anwendung sperren (Ctrl+L)")
@@ -197,10 +201,7 @@ class MainWindow(QMainWindow):
             QPushButton {{
                 background-color: {c['danger']};
                 border: none;
-                border-radius: 12px;
-                font-size: 24px;
-                font-weight: bold;
-                color: white;
+                border-radius: 16px;
             }}
             QPushButton:hover {{
                 background-color: {c['danger_hover']};

@@ -31,14 +31,14 @@ class PasswordGeneratorDialog(QDialog):
         self.setModal(True)
 
         # Feste kompakte Größe
-        self.setMinimumSize(480, 520)
-        self.resize(480, 520)
+        self.setMinimumSize(500, 640)
+        self.resize(500, 640)
 
         # Zentriere auf Bildschirm
         from .responsive import responsive
         screen_info = responsive.get_screen_info()
-        x = (screen_info['screen_width'] - 480) // 2
-        y = (screen_info['screen_height'] - 520) // 2
+        x = (screen_info['screen_width'] - 500) // 2
+        y = (screen_info['screen_height'] - 640) // 2
         self.move(x, y)
 
         fonts = responsive.get_font_sizes()
