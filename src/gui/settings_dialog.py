@@ -80,7 +80,7 @@ class SettingsDialog(QDialog):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setStyleSheet(f"""
             QScrollArea {{
-                background-color: {c['background_primary']};
+                background-color: {c['background']};
                 border: none;
             }}
         """)

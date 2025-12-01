@@ -177,47 +177,33 @@ class MainWindow(QMainWindow):
 
         layout.addStretch()
 
-        # Dark Mode Toggle mit Icon
-        self.theme_button = QPushButton()
-        moon_icon = icon_provider.get_icon("moon", c['text_primary'], 28)
-        self.theme_button.setIcon(moon_icon)
-        self.theme_button.setIconSize(self.theme_button.iconSize() * 1.8)
-        self.theme_button.setFixedSize(70, 70)
-        self.theme_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.theme_button.clicked.connect(self.toggle_theme)
-        self.theme_button.setToolTip("Dark Mode umschalten (Ctrl+D)")
-        self.theme_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {c['background_tertiary']};
-                border: 2px solid {c['surface_border']};
-                border-radius: 16px;
-            }}
-            QPushButton:hover {{
-                background-color: {c['primary']};
-                border-color: {c['primary']};
-            }}
-        """)
-        layout.addWidget(self.theme_button)
-
-        # Lock Button mit Icon
-        self.lock_button = QPushButton()
-        power_icon = icon_provider.get_icon("power", "white", 28)
-        self.lock_button.setIcon(power_icon)
-        self.lock_button.setIconSize(self.lock_button.iconSize() * 1.8)
-        self.lock_button.setFixedSize(70, 70)
+        # Lock Button mit Icon und Text
+        self.lock_button = QPushButton(" Manager sperren")
+        lock_icon = icon_provider.get_icon("lock", c['text_primary'], 20)
+        self.lock_button.setIcon(lock_icon)
+        self.lock_button.setMinimumHeight(44)
+        self.lock_button.setMinimumWidth(160)
         self.lock_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lock_button.clicked.connect(self.lock_application)
         self.lock_button.setToolTip("Anwendung sperren (Ctrl+L)")
         self.lock_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {c['danger']};
-                border: none;
-                border-radius: 16px;
+                background-color: {c['background_tertiary']};
+                color: {c['text_primary']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 12px;
+                padding: 0 16px;
+                font-size: 14px;
+                font-weight: 600;
             }}
             QPushButton:hover {{
-                background-color: {c['danger_hover']};
+                background-color: {c['danger']};
+                color: white;
+                border-color: {c['danger']};
             }}
         """)
+        from .animations import animator
+        self.lock_button.pressed.connect(lambda: animator.press(self.lock_button, scale_factor=0.96, duration=120))
         layout.addWidget(self.lock_button)
 
         return header
@@ -360,14 +346,6 @@ class MainWindow(QMainWindow):
         """Aktualisiert die Farben aller Komponenten basierend auf dem aktuellen Theme"""
         c = theme.get_colors()
 
-        # Update theme button icon
-        if theme.current_mode == ThemeMode.DARK:
-            self.theme_button.setText("◑")
-            self.theme_button.setToolTip("Light Mode aktivieren (Ctrl+D)")
-        else:
-            self.theme_button.setText("◐")
-            self.theme_button.setToolTip("Dark Mode aktivieren (Ctrl+D)")
-
         # Update Header
         self.header.setStyleSheet(f"""
             QFrame {{
@@ -382,32 +360,23 @@ class MainWindow(QMainWindow):
             if "SecurePass" in widget.text():
                 widget.setStyleSheet(f"color: {c['primary']};")
 
-        # Update theme button style
-        self.theme_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {c['background_tertiary']};
-                border: 2px solid {c['surface_border']};
-                border-radius: 12px;
-                font-size: 20px;
-            }}
-            QPushButton:hover {{
-                background-color: {c['primary']};
-                border-color: {c['primary']};
-            }}
-        """)
-
-        # Update lock button
+        # Update lock button style
+        lock_icon = icon_provider.get_icon("lock", c['text_primary'], 20)
+        self.lock_button.setIcon(lock_icon)
         self.lock_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {c['danger']};
-                border: none;
+                background-color: {c['background_tertiary']};
+                color: {c['text_primary']};
+                border: 2px solid {c['surface_border']};
                 border-radius: 12px;
-                font-size: 24px;
-                font-weight: bold;
-                color: white;
+                padding: 0 16px;
+                font-size: 14px;
+                font-weight: 600;
             }}
             QPushButton:hover {{
-                background-color: {c['danger_hover']};
+                background-color: {c['danger']};
+                color: white;
+                border-color: {c['danger']};
             }}
         """)
 
