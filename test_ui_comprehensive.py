@@ -1171,17 +1171,65 @@ def run_interactive_test():
     sys.exit(app.exec())
 
 
-def run_cli_test(test_type: str):
+def run_cli_test(test_type: str, app=None):
     """Führt CLI-Tests aus"""
-    app = QApplication(sys.argv)
-    theme.apply_theme(app)
+    # Erstelle App nur wenn noch keine existiert
+    if app is None:
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
 
     logger.info(f"=== CLI Test: {test_type} ===")
+    errors = []
 
-    # Implementiere CLI-Tests basierend auf test_type
-    # ... (ähnlich wie im einfachen test_ui.py)
+    try:
+        if test_type == "theme":
+            # Theme-Tests
+            logger.info("Test 1/3: Light Mode")
+            theme.set_mode(ThemeMode.LIGHT)
+            colors = theme.get_colors()
+            logger.info(f"✓ Light Mode: {len(colors)} Farben geladen")
 
-    return 0
+            logger.info("Test 2/3: Dark Mode")
+            theme.set_mode(ThemeMode.DARK)
+            colors = theme.get_colors()
+            logger.info(f"✓ Dark Mode: {len(colors)} Farben geladen")
+
+            logger.info("Test 3/3: Theme Toggle")
+            theme.toggle_mode()
+            colors = theme.get_colors()
+            logger.info(f"✓ Toggle: {len(colors)} Farben geladen")
+
+        elif test_type == "dialogs":
+            # Dialog-Tests
+            logger.info("Test: Settings Dialog")
+            window = QMainWindow()
+            dialog = SettingsDialog(window)
+            logger.info("✓ Settings Dialog erstellt")
+
+        elif test_type == "widgets":
+            # Widget-Tests
+            logger.info("Test: Category Button")
+            btn = CategoryButton(category_id=1, name="Test", count=5, color="#ff0000")
+            logger.info("✓ Category Button erstellt")
+
+        elif test_type == "all":
+            # Alle Tests rekursiv
+            logger.info("Führe alle Tests aus...")
+            errors += run_cli_test("theme", app) or []
+            errors += run_cli_test("dialogs", app) or []
+            errors += run_cli_test("widgets", app) or []
+
+        logger.info(f"=== CLI Test {test_type} abgeschlossen ===")
+
+    except Exception as e:
+        error_msg = f"✗ FEHLER in {test_type}: {type(e).__name__}: {e}"
+        logger.error(error_msg)
+        errors.append(error_msg)
+        import traceback
+        traceback.print_exc()
+
+    return errors if errors else 0
 
 
 def main():

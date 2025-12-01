@@ -258,7 +258,7 @@ class SettingsDialog(QDialog):
         self.totp_button.setToolTip("2FA kann beim Bearbeiten von Passwort-Einträgen aktiviert werden")
         self.totp_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {c['success']};
+                background-color: #10b981;
                 color: white;
                 border: none;
                 border-radius: 10px;
