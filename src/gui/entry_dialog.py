@@ -1,6 +1,7 @@
 """
 Dialog zum Hinzufügen/Bearbeiten von Passwort-Einträgen mit modernem Design
 """
+import logging
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox, QFrame, QSizePolicy, QWidget
@@ -15,6 +16,8 @@ from .themes import theme
 from .icons import icon_provider
 from .animations import animator
 from .responsive import responsive
+
+logger = logging.getLogger(__name__)
 
 
 class PasswordEntryDialog(QDialog):
@@ -353,8 +356,9 @@ class PasswordEntryDialog(QDialog):
             try:
                 decrypted_notes = encryption_manager.decrypt(self.entry.encrypted_notes)
                 self.notes_input.setPlainText(decrypted_notes)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fehler beim Entschlüsseln der Notizen: {e}")
+                # Notizen-Feld leer lassen bei Entschlüsselungsfehler
 
     def toggle_password_visibility(self):
         """Toggle Passwort-Sichtbarkeit mit Icon-Wechsel"""
