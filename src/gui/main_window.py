@@ -15,8 +15,10 @@ from ..core.encryption import encryption_manager
 from .widgets import PasswordEntryWidget, CategoryButton
 from .entry_dialog import PasswordEntryDialog
 from .login_dialog import LoginDialog
+from .settings_dialog import SettingsDialog
 from .themes import theme, ThemeMode
 from .icons import icon_provider
+from ..core.settings import app_settings
 
 
 class MainWindow(QMainWindow):
@@ -97,6 +99,14 @@ class MainWindow(QMainWindow):
         lock_action.setShortcut("Ctrl+L")
         lock_action.triggered.connect(self.lock_application)
         file_menu.addAction(lock_action)
+
+        file_menu.addSeparator()
+
+        # Einstellungen
+        settings_action = QAction("⚙️ Einstellungen", self)
+        settings_action.setShortcut("Ctrl+,")
+        settings_action.triggered.connect(self.open_settings)
+        file_menu.addAction(settings_action)
 
         file_menu.addSeparator()
 
@@ -691,6 +701,29 @@ class MainWindow(QMainWindow):
             "• Kategorien-System\n\n"
             "Erstellt mit Python und PyQt6"
         )
+
+    def open_settings(self):
+        """Öffnet den Einstellungs-Dialog"""
+        dialog = SettingsDialog(self)
+        dialog.settings_changed.connect(self.on_settings_changed)
+        dialog.exec()
+
+    def on_settings_changed(self):
+        """Wird aufgerufen, wenn Einstellungen geändert wurden"""
+        # Auto-Lock Timer aktualisieren
+        self.auto_lock_minutes = app_settings.get("auto_lock_minutes", 5)
+        self.reset_auto_lock_timer()
+
+        # Theme aktualisieren
+        theme_mode = app_settings.get("theme_mode", "light")
+        if theme_mode == "dark":
+            theme.set_mode(ThemeMode.DARK)
+        elif theme_mode == "light":
+            theme.set_mode(ThemeMode.LIGHT)
+        # System-Theme würde hier implementiert werden
+
+        # UI neu rendern
+        theme.apply_theme(self.parentWidget() if self.parent() else self)
 
     # Event-Handler für Auto-Lock
     def mousePressEvent(self, event):
