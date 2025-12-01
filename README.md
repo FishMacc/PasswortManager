@@ -187,6 +187,44 @@ PasswortManager/
 - **Style**: Apple-inspiriertes Design mit Dark & Light Mode
 - **Responsive**: Mindestgrößen für alle Dialoge und optimierte Layouts
 
+## Testing & Entwicklung
+
+### UI Testing
+
+Das Projekt enthält ein umfassendes UI-Test-Tool für automatisierte und interaktive Tests:
+
+```bash
+# Interaktives Test-Fenster (empfohlen)
+python test_ui.py --interactive
+
+# CLI-Modus für CI/CD
+python test_ui.py --test all
+python test_ui.py --test theme
+python test_ui.py --test settings
+```
+
+**Features des Test-Tools:**
+- 🎨 Theme-Tests (Light/Dark Mode Wechsel)
+- 🪟 Dialog-Tests (Settings, Entry, Generator)
+- 🤖 Automatische Test-Suiten
+- 📋 Echtzeit-Logging und Ergebnisse
+- ⚡ Schnelle Regression-Tests
+
+Siehe `docs/UI_TESTING.md` für detaillierte Anleitung.
+
+### Unit Tests
+
+```bash
+# Alle Tests ausführen
+pytest
+
+# Mit Coverage-Report
+pytest --cov=src --cov-report=html
+
+# Spezifische Tests
+pytest tests/test_encryption.py -v
+```
+
 ## Häufige Fragen
 
 **F: Kann ich mein Master-Passwort ändern?**
