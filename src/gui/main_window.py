@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
 
         # Zeige Login-Dialog
         self.hide()
-        login_dialog = LoginDialog(self.db_manager)
+        login_dialog = LoginDialog(self.db_manager.encrypted_db_path)
         login_dialog.login_successful.connect(self.on_unlock)
 
         if login_dialog.exec() != LoginDialog.DialogCode.Accepted:
@@ -691,8 +691,8 @@ class MainWindow(QMainWindow):
             theme.set_mode(ThemeMode.LIGHT)
         # System-Theme würde hier implementiert werden
 
-        # UI neu rendern
-        theme.apply_theme(self.parentWidget() if self.parent() else self)
+        # Update komplettes UI mit neuen Theme-Farben
+        self.update_theme_styles()
 
     # Event-Handler für Auto-Lock
     def mousePressEvent(self, event):

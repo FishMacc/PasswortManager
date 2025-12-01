@@ -197,10 +197,45 @@ class SettingsDialog(QDialog):
         totp_layout = QVBoxLayout()
         totp_layout.setSpacing(16)
 
-        # Info-Text
+        # Info-Text mit Warnung
+        info_container = QFrame()
+        info_container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['background_tertiary']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 10px;
+                padding: 12px;
+            }}
+        """)
+        info_inner_layout = QVBoxLayout(info_container)
+        info_inner_layout.setSpacing(8)
+
+        # Titel mit Icon
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(8)
+
+        info_icon_label = QLabel("ℹ️")
+        info_icon_label.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+        title_layout.addWidget(info_icon_label)
+
+        title_label = QLabel("In Entwicklung")
+        title_label.setStyleSheet(f"""
+            color: {c['text_primary']};
+            font-size: 14px;
+            font-weight: bold;
+            background: transparent;
+            border: none;
+        """)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        info_inner_layout.addLayout(title_layout)
+
+        # Beschreibung
         info_label = QLabel(
-            "2FA/TOTP-Unterstützung ermöglicht das Speichern von Authenticator-Codes.\n"
-            "Diese Funktion wird in einer zukünftigen Version verfügbar sein."
+            "2FA/TOTP-Unterstützung ermöglicht das Speichern von Authenticator-Codes "
+            "(z.B. Google Authenticator, Authy).\n\n"
+            "Diese Funktion ist in Planung und wird in einer zukünftigen Version verfügbar sein. "
+            "Die notwendige pyotp-Bibliothek ist bereits installiert."
         )
         info_label.setWordWrap(True)
         info_label.setStyleSheet(f"""
@@ -208,15 +243,16 @@ class SettingsDialog(QDialog):
             font-size: 13px;
             background: transparent;
             border: none;
-            padding: 8px;
         """)
-        totp_layout.addWidget(info_label)
+        info_inner_layout.addWidget(info_label)
 
-        # 2FA Setup Button (disabled für jetzt)
-        self.totp_button = QPushButton("📱 2FA einrichten")
+        totp_layout.addWidget(info_container)
+
+        # 2FA Setup Button (disabled für jetzt) - mit Tooltip
+        self.totp_button = QPushButton("📱 2FA einrichten (Noch nicht verfügbar)")
         self.totp_button.setMinimumHeight(44)
-        self.totp_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.totp_button.setEnabled(False)  # Noch nicht implementiert
+        self.totp_button.setToolTip("Diese Funktion wird in einer zukünftigen Version implementiert")
         self.totp_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['background_tertiary']};
@@ -228,7 +264,7 @@ class SettingsDialog(QDialog):
                 padding: 0 20px;
             }}
             QPushButton:disabled {{
-                opacity: 0.5;
+                opacity: 0.6;
             }}
         """)
         totp_layout.addWidget(self.totp_button)
