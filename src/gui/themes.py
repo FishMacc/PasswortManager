@@ -138,7 +138,6 @@ class Theme:
 
             QPushButton:pressed {{
                 background-color: {c["primary"]};
-                transform: scale(0.98);
             }}
 
             QPushButton:disabled {{

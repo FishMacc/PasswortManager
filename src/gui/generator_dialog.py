@@ -142,7 +142,7 @@ class PasswordGeneratorDialog(QDialog):
                 border-color: {c['secondary']};
             }}
             QPushButton:pressed {{
-                transform: scale(0.95);
+                background-color: {c['primary']};
             }}
         """)
         display_layout.addWidget(self.copy_button)
@@ -376,7 +376,7 @@ class PasswordGeneratorDialog(QDialog):
                 border-color: {c['primary']};
             }}
             QPushButton:pressed {{
-                transform: scale(0.98);
+                background-color: {c['background_tertiary']};
             }}
         """)
         button_layout.addWidget(self.regenerate_button)
@@ -427,7 +427,7 @@ class PasswordGeneratorDialog(QDialog):
                 background-color: {c['primary_hover']};
             }}
             QPushButton:pressed {{
-                transform: scale(0.98);
+                background-color: {c['primary']};
             }}
         """)
         button_layout.addWidget(self.accept_button)
