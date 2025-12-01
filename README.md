@@ -191,26 +191,51 @@ PasswortManager/
 
 ### UI Testing
 
-Das Projekt enthält ein umfassendes UI-Test-Tool für automatisierte und interaktive Tests:
+Das Projekt enthält **zwei UI-Test-Tools** für verschiedene Anwendungsfälle:
+
+#### 🧪 Umfassendes Test-Tool (Empfohlen)
+
+Testet **ALLE** UI-Komponenten (29 Komponenten, 100% Coverage):
 
 ```bash
-# Interaktives Test-Fenster (empfohlen)
-python test_ui.py --interactive
+# Interaktives Test-Fenster mit 7 Tabs
+python test_ui_comprehensive.py --interactive
 
 # CLI-Modus für CI/CD
-python test_ui.py --test all
-python test_ui.py --test theme
-python test_ui.py --test settings
+python test_ui_comprehensive.py --test all
+python test_ui_comprehensive.py --test dialogs
+python test_ui_comprehensive.py --test widgets
+python test_ui_comprehensive.py --test mainwindow
+python test_ui_comprehensive.py --test animations
 ```
 
-**Features des Test-Tools:**
-- 🎨 Theme-Tests (Light/Dark Mode Wechsel)
-- 🪟 Dialog-Tests (Settings, Entry, Generator)
-- 🤖 Automatische Test-Suiten
-- 📋 Echtzeit-Logging und Ergebnisse
-- ⚡ Schnelle Regression-Tests
+**Getestete Komponenten:**
+- 🪟 6 Dialoge (Login, Entry, Generator, Settings, DB-Selector, New DB)
+- 🧩 2 Widgets (PasswordEntryWidget, CategoryButton)
+- 🏠 MainWindow (Entry-Liste, Kategorien, Suche, Lock)
+- ✨ 5 Animationen (Fade, Slide, Pulse, Press, Shake)
+- 🎨 Theme-System (Light/Dark Mode, Toggle, Cycle)
+- 💾 Datenbank-CRUD (Create, Read, Update, Delete)
 
-Siehe `docs/UI_TESTING.md` für detaillierte Anleitung.
+**Features:**
+- Mock-Datenbank für sichere Tests
+- Automatische Test-Suiten (55s vollständiger Test)
+- Echtzeit-Logging mit detaillierten Ergebnissen
+- 7-Tab Interface für organisierte Tests
+- CI/CD-kompatibel
+
+Siehe `docs/COMPREHENSIVE_UI_TESTING.md` für vollständige Dokumentation.
+
+#### ⚡ Schnelles Test-Tool
+
+Für schnelle Theme- und Settings-Tests:
+
+```bash
+python test_ui.py --interactive
+python test_ui.py --test theme
+```
+
+Siehe `docs/UI_TESTING.md` für Details.
 
 ### Unit Tests
 
