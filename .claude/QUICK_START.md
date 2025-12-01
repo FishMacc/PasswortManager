@@ -45,22 +45,24 @@ pytest --cov=src
 
 ## 3. Aktuelle Probleme (Priorität)
 
-### ✅ BEHOBEN (2025-12-01)
-1. ~~**Exception-Handling & Logging**~~ - Logging-System implementiert
-2. ~~**Debug-Statements**~~ - `print()` durch `logger` ersetzt
-3. ~~**Alte Dateien**~~ - `database_old.py`, `login_dialog_old.py`, `nul` gelöscht
+### ✅ BEHOBEN (2025-12-01 Session)
+1. ~~**Exception-Handling & Logging**~~ - Logging-System implementiert ✅
+2. ~~**Debug-Statements**~~ - `print()` durch `logger` ersetzt ✅
+3. ~~**Alte Dateien**~~ - `database_old.py`, `login_dialog_old.py`, `nul` gelöscht ✅
+4. ~~**CSS transform Fehler**~~ - Nicht unterstützte Property entfernt ✅
+5. ~~**Lock-Crash**~~ - TypeError beim Sperren behoben ✅
+6. ~~**Theme-Bug**~~ - Theme-Wechsel funktioniert komplett ✅
+7. ~~**KeyError Settings**~~ - 'background_primary' → 'background' korrigiert ✅
 
-### MITTEL (nächste Schritte)
-4. **UI-Layout-Stabilität**
-   - Letzte 5 Commits = Layout-Fixes
-   - Action: Responsive Design-Tests automatisieren
+### FEATURES HINZUGEFÜGT (2025-12-01)
+- Button-Press-Animationen (animator.press())
+- Einstellungs-Dialog (Theme, Auto-Lock, Zwischenablage, 2FA-Info)
+- Cleaner Header (kompakter Lock-Button)
+- 7 animierte Buttons in Dialogen
 
-5. **Exception-Handling verbessern**
-   - `entry_dialog.py:353` - Logging für fehlgeschlagene Notizen-Entschlüsselung
-
-### NIEDRIG
-6. **Git-Status bereinigen**
-   - `.claude/` Dokumentation committen
+### NIEDRIG (optional)
+- **Exception-Handling**: `entry_dialog.py:353` - Logging für Notizen-Entschlüsselung
+- **Code-Review**: main_window.py (~700 Zeilen) - Evtl. später aufteilen
 
 ---
 
