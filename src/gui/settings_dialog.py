@@ -30,6 +30,9 @@ class SettingsDialog(QDialog):
         self.setup_ui()
         self.load_settings()
 
+        # Theme-Updates abonnieren
+        theme.theme_changed.connect(self.refresh_theme)
+
     def setup_ui(self):
         """Erstellt das UI des Einstellungs-Dialogs"""
         self.setWindowTitle("Einstellungen")
@@ -214,37 +217,37 @@ class SettingsDialog(QDialog):
         title_layout = QHBoxLayout()
         title_layout.setSpacing(8)
 
-        info_icon_label = QLabel("ℹ️")
-        info_icon_label.setStyleSheet("font-size: 18px; background: transparent; border: none;")
-        title_layout.addWidget(info_icon_label)
+        self.info_icon_label = QLabel("ℹ️")
+        self.info_icon_label.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+        title_layout.addWidget(self.info_icon_label)
 
-        title_label = QLabel("In Entwicklung")
-        title_label.setStyleSheet(f"""
+        self.totp_title_label = QLabel("In Entwicklung")
+        self.totp_title_label.setStyleSheet(f"""
             color: {c['text_primary']};
             font-size: 14px;
             font-weight: bold;
             background: transparent;
             border: none;
         """)
-        title_layout.addWidget(title_label)
+        title_layout.addWidget(self.totp_title_label)
         title_layout.addStretch()
         info_inner_layout.addLayout(title_layout)
 
         # Beschreibung
-        info_label = QLabel(
+        self.totp_info_label = QLabel(
             "2FA/TOTP-Unterstützung ermöglicht das Speichern von Authenticator-Codes "
             "(z.B. Google Authenticator, Authy).\n\n"
             "Diese Funktion ist in Planung und wird in einer zukünftigen Version verfügbar sein. "
             "Die notwendige pyotp-Bibliothek ist bereits installiert."
         )
-        info_label.setWordWrap(True)
-        info_label.setStyleSheet(f"""
+        self.totp_info_label.setWordWrap(True)
+        self.totp_info_label.setStyleSheet(f"""
             color: {c['text_secondary']};
             font-size: 13px;
             background: transparent;
             border: none;
         """)
-        info_inner_layout.addWidget(info_label)
+        info_inner_layout.addWidget(self.totp_info_label)
 
         totp_layout.addWidget(info_container)
 
@@ -427,3 +430,221 @@ class SettingsDialog(QDialog):
         self.settings_changed.emit()
 
         self.accept()
+
+    def refresh_theme(self):
+        """Aktualisiert alle Farben basierend auf dem aktuellen Theme"""
+        c = theme.get_colors()
+
+        # Header
+        if hasattr(self, 'findChild'):
+            header = self.findChild(QFrame)
+            if header:
+                header.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {c['background_secondary']};
+                        border-bottom: 1px solid {c['surface_border']};
+                    }}
+                """)
+
+        # Update alle Labels im Header
+        for label in self.findChildren(QLabel):
+            if label.font().bold() and label.font().pointSize() == 18:
+                # Title Label
+                label.setStyleSheet(f"color: {c['text_primary']}; background: transparent; border: none;")
+
+        # Update ScrollArea
+        scroll_areas = self.findChildren(QScrollArea)
+        for scroll in scroll_areas:
+            scroll.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {c['background']};
+                    border: none;
+                }}
+            """)
+
+        # Update ComboBox (Theme-Auswahl)
+        if hasattr(self, 'theme_combo'):
+            self.theme_combo.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {c['background_tertiary']};
+                    color: {c['text_primary']};
+                    border: 2px solid {c['surface_border']};
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    font-size: 14px;
+                }}
+                QComboBox:hover {{
+                    border-color: {c['primary']};
+                }}
+                QComboBox::drop-down {{
+                    border: none;
+                    width: 30px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background-color: {c['background_tertiary']};
+                    color: {c['text_primary']};
+                    selection-background-color: {c['primary']};
+                    selection-color: white;
+                    border: 1px solid {c['surface_border']};
+                }}
+            """)
+
+        # Update SpinBoxes
+        spinbox_style = f"""
+            QSpinBox {{
+                background-color: {c['background_tertiary']};
+                color: {c['text_primary']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 14px;
+            }}
+            QSpinBox:hover {{
+                border-color: {c['primary']};
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{
+                background-color: {c['background_secondary']};
+                border: none;
+                width: 20px;
+            }}
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+                background-color: {c['primary']};
+            }}
+        """
+        if hasattr(self, 'autolock_spin'):
+            self.autolock_spin.setStyleSheet(spinbox_style)
+        if hasattr(self, 'clipboard_spin'):
+            self.clipboard_spin.setStyleSheet(spinbox_style)
+
+        # Update GroupBoxes
+        for group in self.findChildren(QGroupBox):
+            group.setStyleSheet(f"""
+                QGroupBox {{
+                    background-color: {c['background_secondary']};
+                    border: 2px solid {c['surface_border']};
+                    border-radius: 12px;
+                    margin-top: 12px;
+                    padding: 20px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: {c['text_primary']};
+                }}
+                QGroupBox::title {{
+                    subcontrol-origin: margin;
+                    left: 16px;
+                    padding: 0 8px;
+                    background-color: {c['background_secondary']};
+                }}
+            """)
+
+        # Update alle Text-Labels in Settings
+        for label in self.findChildren(QLabel):
+            current_style = label.styleSheet()
+            label_text = label.text()
+
+            # Emoji-Labels (ℹ️) brauchen kein Color-Update
+            if label_text in ['ℹ️']:
+                label.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+            elif 'text_primary' in current_style or 'font-weight: bold' in current_style or label.font().bold():
+                label.setStyleSheet(f"color: {c['text_primary']}; background: transparent; border: none;")
+            elif 'text_secondary' in current_style or 'font-size: 12px' in current_style or 'font-size: 13px' in current_style:
+                # Beschreibungen und Info-Texte
+                font_size = '12px' if 'font-size: 12px' in current_style else '13px'
+                label.setStyleSheet(f"color: {c['text_secondary']}; font-size: {font_size}; background: transparent; border: none;")
+
+        # Update Info-Container (2FA-Bereich)
+        for frame in self.findChildren(QFrame):
+            if 'border-radius: 10px' in frame.styleSheet() and 'padding: 12px' in frame.styleSheet():
+                frame.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {c['background_tertiary']};
+                        border: 2px solid {c['surface_border']};
+                        border-radius: 10px;
+                        padding: 12px;
+                    }}
+                """)
+
+        # Update 2FA Info Labels
+        if hasattr(self, 'totp_title_label'):
+            self.totp_title_label.setStyleSheet(f"""
+                color: {c['text_primary']};
+                font-size: 14px;
+                font-weight: bold;
+                background: transparent;
+                border: none;
+            """)
+
+        if hasattr(self, 'totp_info_label'):
+            self.totp_info_label.setStyleSheet(f"""
+                color: {c['text_secondary']};
+                font-size: 13px;
+                background: transparent;
+                border: none;
+            """)
+
+        # Update 2FA Button
+        if hasattr(self, 'totp_button'):
+            self.totp_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['background_tertiary']};
+                    color: {c['text_secondary']};
+                    border: 2px solid {c['surface_border']};
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 0 20px;
+                }}
+                QPushButton:disabled {{
+                    opacity: 0.6;
+                }}
+            """)
+
+        # Update Footer
+        for frame in self.findChildren(QFrame):
+            if 'border-top: 1px solid' in frame.styleSheet():
+                frame.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {c['background_secondary']};
+                        border-top: 1px solid {c['surface_border']};
+                    }}
+                """)
+
+        # Update Cancel Button
+        if hasattr(self, 'cancel_button'):
+            self.cancel_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['background_tertiary']};
+                    color: {c['text_primary']};
+                    border: 2px solid {c['surface_border']};
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['surface_hover']};
+                }}
+            """)
+
+        # Update Save Button
+        if hasattr(self, 'save_button'):
+            self.save_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 0 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['primary_hover']};
+                }}
+            """)
+
+        # Update Icon im Header
+        settings_icon = icon_provider.get_icon("shield", c['primary'], 28)
+        for label in self.findChildren(QLabel):
+            if label.pixmap() and not label.pixmap().isNull():
+                label.setPixmap(settings_icon.pixmap(28, 28))
+                break
