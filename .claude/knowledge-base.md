@@ -1,0 +1,502 @@
+# SecurePass Manager - Wissensdatenbank
+
+**Letzte Aktualisierung**: 2025-12-01
+**Projekt-Typ**: Python-basierter Passwort-Manager mit PyQt6
+**Status**: Voll funktionsfähig, in aktiver Entwicklung
+
+---
+
+## 1. Projekt-Übersicht
+
+SecurePass Manager ist ein moderner, sicherer Passwort-Manager geschrieben in **Python 3.8+** mit **PyQt6**. Die Anwendung verwendet **AES-256 Verschlüsselung** für alle sensiblen Daten und speichert diese in verschlüsselten `.spdb` Dateien (ähnlich KeePass).
+
+### Kern-Features
+- Verschlüsselte Einzeldatei-Datenbanken (.spdb Format)
+- AES-256 + Argon2id Verschlüsselung
+- Apple-inspiriertes Dark/Light Mode Design
+- Multi-Datenbank Support (Cloud-Sync fähig)
+- Passwort-Generator mit Stärke-Bewertung
+- Auto-Lock (5 Min.) & Sichere Zwischenablage (30s)
+
+---
+
+## 2. Projektstruktur
+
+```
+PasswortManager/
+├── main.py                    # Entry Point
+├── requirements.txt           # Python Dependencies
+├── pytest.ini                 # Test-Konfiguration
+│
+├── src/
+│   ├── auth/                  # Authentifizierung
+│   │   └── master_password.py # Argon2id Hashing
+│   │
+│   ├── core/                  # Kern-Module
+│   │   ├── database.py        # DatabaseManager (Hauptschnittstelle)
+│   │   ├── database_file.py   # Verschlüsselte .spdb Dateien
+│   │   ├── encryption.py      # AES-256 (Fernet)
+│   │   ├── models.py          # Datenmodelle (Category, PasswordEntry)
+│   │   └── settings.py        # App-Einstellungen
+│   │
+│   ├── gui/                   # PyQt6 UI
+│   │   ├── main_window.py     # Hauptfenster
+│   │   ├── database_selector.py  # DB-Auswahl Dialog
+│   │   ├── login_dialog.py    # Master-Passwort Eingabe
+│   │   ├── entry_dialog.py    # Passwort-Eintrag Dialog
+│   │   ├── generator_dialog.py # Passwort-Generator
+│   │   ├── widgets.py         # Custom Widgets (Entry, Category Buttons)
+│   │   ├── themes.py          # Dark/Light Mode System
+│   │   ├── icons.py           # SVG-Icon-Provider (21 Icons)
+│   │   ├── animations.py      # UI-Animationen (Fade, Slide, Pulse, Shake)
+│   │   └── responsive.py      # Responsive Design Utilities
+│   │
+│   ├── password/              # Passwort-Tools
+│   │   ├── generator.py       # Kryptografisch sicherer Generator
+│   │   └── strength.py        # Stärke-Bewertung
+│   │
+│   └── utils/
+│       └── clipboard.py       # Auto-Clear Zwischenablage
+│
+└── tests/                     # Unit Tests (pytest)
+    ├── test_database.py
+    ├── test_encryption.py
+    ├── test_master_password.py
+    ├── test_password_generator.py
+    └── test_password_strength.py
+```
+
+---
+
+## 3. Technologie-Stack
+
+### Haupt-Dependencies
+- **PyQt6 >= 6.6.0** - GUI Framework
+- **cryptography >= 41.0.0** - AES-256 Verschlüsselung (Fernet)
+- **argon2-cffi >= 23.1.0** - Passwort-Hashing (Memory-Hard)
+- **pyotp >= 2.9.0** - TOTP/2FA Support (geplant)
+- **pytest >= 7.4.0** - Testing Framework
+
+### Standard Library
+- sqlite3 (Datenbank)
+- hashlib (SHA-256 für Key-Derivation)
+- secrets (Kryptografisch sicherer Passwort-Generator)
+- tempfile (Temporäre Datenbank-Entschlüsselung)
+- logging (Zentrales Logging-System, seit 2025-12-01)
+
+---
+
+## 4. Architektur
+
+### Design-Patterns
+- **MVC-ähnlich**: Models (models.py), Views (gui/), Controller (database.py)
+- **Singleton**: Alle globalen Manager (encryption_manager, theme, icon_provider, etc.)
+- **Repository**: DatabaseManager als Abstraktionsschicht
+- **Observer**: PyQt6 Signals & Slots
+
+### Globale Singleton-Instanzen
+```python
+# src/core/encryption.py
+encryption_manager = EncryptionManager()
+
+# src/core/settings.py
+app_settings = AppSettings()
+
+# src/gui/themes.py
+theme = Theme()
+
+# src/gui/icons.py
+icon_provider = IconProvider()
+
+# src/utils/clipboard.py
+clipboard_manager = ClipboardManager()
+
+# src/auth/master_password.py
+master_password_manager = MasterPasswordManager()
+
+# src/password/generator.py
+password_generator = PasswordGenerator()
+
+# src/gui/animations.py
+animator = AnimationHelper()
+```
+
+---
+
+## 5. Sicherheitskonzept
+
+### Dreifache Verschlüsselung
+
+1. **Datenbank-Datei-Verschlüsselung**
+   ```
+   Master-Passwort → SHA256 → Base64 → Fernet Key
+                                        ↓
+   SQLite-DB (Bytes) → Fernet.encrypt() → .spdb Datei
+   ```
+
+2. **Feldverschlüsselung**
+   - Passwörter, Notizen, TOTP-Secrets zusätzlich verschlüsselt
+   - Ermöglicht Suche ohne vollständige Entschlüsselung
+
+3. **Master-Passwort Hashing**
+   ```
+   Master-Passwort → Argon2id (64MB, 2 Iter, 4 Threads) → Hash
+   ```
+   - Gespeichert in `users` Tabelle
+   - Verhindert Brute-Force Angriffe
+
+### Dateiformat (.spdb)
+```
+[16 Bytes: "SECUREPASS_DB_V1"] + [Variable: Fernet(SQLite-DB)]
+```
+
+### Temporäre Datei-Verwaltung
+- Verschlüsselte DB wird temporär in System-Temp entschlüsselt
+- Automatische Löschung beim Schließen oder Lock
+- Destruktor-basierte Cleanup
+
+---
+
+## 6. Datenbankschema (SQLite)
+
+### Tabelle: users
+```sql
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    password_hash TEXT NOT NULL,  -- Argon2id Hash
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+### Tabelle: categories
+```sql
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    color TEXT DEFAULT '#808080',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+**Standard-Kategorien**:
+- Allgemein (#6366f1 - Indigo)
+- Banking (#10b981 - Grün)
+- Social Media (#8b5cf6 - Lila)
+- E-Mail (#f59e0b - Orange)
+
+### Tabelle: password_entries
+```sql
+CREATE TABLE password_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    username TEXT,
+    encrypted_password BLOB NOT NULL,
+    encrypted_notes BLOB,
+    website_url TEXT,
+    totp_secret BLOB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories (id)
+)
+```
+
+---
+
+## 7. Anwendungsfluss
+
+### Startprozess
+1. QApplication erstellen
+2. Theme laden und anwenden
+3. DatabaseSelectorDialog öffnen
+4. LoginDialog (Master-Passwort)
+5. DatabaseManager initialisieren
+   - .spdb entschlüsseln → Temp SQLite
+6. MainWindow anzeigen
+7. Auto-Lock Timer starten (5 Min.)
+
+### Passwort-Speichern
+1. Benutzer gibt Passwort ein (entry_dialog.py)
+2. `encryption_manager.encrypt(password)` → bytes
+3. PasswordEntry erstellen mit encrypted_password
+4. `DatabaseManager.add_password_entry(entry)`
+5. `DatabaseFile.save_database()` - verschlüsselt zurückspeichern
+
+### Passwort-Anzeigen
+1. Benutzer klickt "Auge"-Icon
+2. Lese encrypted_password
+3. `encryption_manager.decrypt(encrypted_password)` → str
+4. Anzeige in QLabel (Monospace-Font)
+5. Pulse-Animation für Feedback
+
+---
+
+## 8. UI-System
+
+### Theme-System (themes.py)
+
+**Light Mode:**
+- Primary: #6366f1 (Indigo)
+- Background: #ffffff
+- Text: #111827
+
+**Dark Mode:**
+- Primary: #818cf8 (Heller Indigo)
+- Background: #0f172a (Slate 900)
+- Text: #f1f5f9
+
+**Toggle**: Ctrl+D oder Mond/Sonne-Button
+
+### Icon-System (icons.py)
+- 21 SVG-Icons (Lucide Icons)
+- Dynamische Farbgebung
+- Skalierbar (DPI-unabhängig)
+
+**Verfügbare Icons:**
+lock, unlock, eye, eye_off, copy, check, edit, trash, key, dice, search, folder, folder_open, user, link, plus, refresh, power, sun, moon, shield, info
+
+### Animations (animations.py)
+- **Fade**: Opacity-Übergang
+- **Slide**: Von oben/unten
+- **Scale**: Zoom-Effekt
+- **Pulse**: Feedback (Kopieren)
+- **Shake**: Fehler-Feedback (falsches Passwort)
+
+---
+
+## 9. Bekannte Issues
+
+### Kritisch
+- **BEHOBEN** ~~Exception-Handling~~: Logging-System implementiert (2025-12-01)
+- **BEHOBEN** ~~Alte Dateien~~: `database_old.py`, `login_dialog_old.py`, `nul` entfernt (2025-12-01)
+- **BEHOBEN** ~~Debug-Statements~~: `print()` durch Logging ersetzt (2025-12-01)
+
+### Mittel
+- **UI-Layout**: Letzte 5 Commits beheben Dialog-Größen-Probleme
+- **Responsive Design**: Weitere Tests für kleine Bildschirme nötig
+- **Exception-Handling**: entry_dialog.py:353 - Logging für fehlgeschlagene Notizen-Entschlüsselung hinzufügen
+
+### Niedrig
+- **Git-Status**: `.claude/` Dokumentation nicht committed
+- **Code-Review**: main_window.py (704 Zeilen) - Evtl. Aufteilung prüfen
+
+### Letzte Commits (Kontext)
+```
+f4194a8 fix: Füge fehlenden icon_provider Import hinzu
+b66d803 fix: Vergrößere Icons und behebe Generator Dialog Höhe
+2192d3e fix: Behebe Header-Layout und reduziere Datenbanken-Liste Höhe
+f74d154 fix: Behebe UI-Probleme und füge Verbesserungen hinzu
+aadf884 fix: Repariere ALLE Dialog-Größen - Keine Überlappungen mehr!
+```
+
+**Hinweis**: Häufige Layout-Fixes deuten auf ungelöste Responsive-Design-Probleme hin.
+
+---
+
+## 10. Wichtige Code-Referenzen
+
+### Hauptfenster Initialisierung
+**main_window.py:107-218** - Setup-Methode mit Header, Sidebar, Content
+
+### Verschlüsselung
+**encryption.py:23-55** - encrypt() und decrypt() Methoden
+
+### Datenbank-Zugriff
+**database.py:169-217** - CRUD für Passwort-Einträge
+
+### Passwort-Generator
+**generator.py:45-86** - generate() mit kryptografischer Sicherheit
+
+### Auto-Lock
+**main_window.py:551-570** - reset_inactivity_timer() und lock_application()
+
+---
+
+## 11. Build & Run
+
+### Installation
+```bash
+# Virtual Environment erstellen (empfohlen)
+python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+
+# Dependencies installieren
+pip install -r requirements.txt
+```
+
+### Start
+```bash
+python main.py
+```
+
+### Tests
+```bash
+# Alle Tests
+pytest
+
+# Mit Coverage
+pytest --cov=src --cov-report=html
+
+# Bestimmte Tests
+pytest tests/test_encryption.py -v
+```
+
+---
+
+## 12. Einstellungen & Daten
+
+### Einstellungen-Datei
+**Pfad**: `~/.securepass/settings.json`
+
+**Inhalt**:
+```json
+{
+  "last_database": "/pfad/zur/letzten.spdb",
+  "recent_databases": [...],
+  "theme_mode": "light",
+  "auto_lock_minutes": 5,
+  "clipboard_clear_seconds": 30
+}
+```
+
+### Datenbank-Dateien
+**Standard-Speicherort**:
+- Windows: `C:\Users\<User>\Documents\SecurePass\`
+- Linux/Mac: `/home/<user>/Documents/SecurePass/`
+
+**Format**: `.spdb` (SecurePass Database)
+
+### Log-Dateien
+**Pfad**: `~/.securepass/logs/securepass.log`
+
+**Format**: Standard Python Logging
+```
+2025-12-01 14:30:15 - __main__ - INFO - SecurePass Manager gestartet
+2025-12-01 14:30:20 - src.core.database_file - WARNING - Konnte temporäre Datei nicht löschen
+```
+
+**Log-Level**: INFO (Konsole + Datei)
+
+---
+
+## 13. Tastenkombinationen
+
+- **Ctrl+L** - Anwendung sperren
+- **Ctrl+D** - Dark Mode umschalten
+- **Ctrl+Q** - Beenden
+
+---
+
+## 14. Git Workflow & Version Control
+
+**WICHTIG**: Für alle Code-Änderungen gilt der Git-Workflow!
+
+### Vollständige Dokumentation
+→ Siehe **`.claude/GIT_WORKFLOW.md`** für alle Details
+
+### Grundregeln
+
+1. **IMMER Branches erstellen** für Features/Fixes
+   ```bash
+   git checkout -b feature/mein-feature
+   git checkout -b fix/mein-bugfix
+   ```
+
+2. **NIEMALS direkt auf main committen** (außer Hotfixes/Docs)
+
+3. **Branch-Naming Convention**:
+   - `feature/` - Neue Features
+   - `fix/` - Bugfixes
+   - `refactor/` - Code-Refactoring
+   - `docs/` - Dokumentation
+   - `test/` - Tests
+
+4. **Commit-Messages Format**:
+   ```
+   <typ>: <Beschreibung>
+
+   <Details>
+
+   🤖 Generated with Claude Code
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   ```
+
+5. **Pull Requests** für alle Merges in main
+
+6. **Tests vor Push** ausführen: `pytest`
+
+### Typischer Workflow für Claude
+
+```bash
+# 1. Branch erstellen
+git checkout -b feature/neues-feature
+
+# 2. Entwickeln (mehrere Commits)
+git add <dateien>
+git commit -m "feat: Beschreibung"
+
+# 3. Pushen
+git push -u origin feature/neues-feature
+
+# 4. PR erstellen
+gh pr create --title "Feature: Beschreibung"
+
+# 5. Nach Merge: Cleanup
+git checkout main && git pull
+git branch -d feature/neues-feature
+```
+
+---
+
+## 15. Entwicklungs-Empfehlungen
+
+### ✅ Abgeschlossen (2025-12-01)
+1. ~~Exception-Handling verbessern~~ - Logging-System implementiert
+2. ~~Logging-System einführen~~ - In main.py, database_file.py, settings.py integriert
+3. ~~Alte Dateien entfernen~~ - database_old.py, login_dialog_old.py, nul gelöscht
+
+### Nächste Schritte
+4. UI-Layout-Tests automatisieren (verschiedene Auflösungen)
+5. Exception-Handling in entry_dialog.py:353 verbessern
+6. Git-Status bereinigen (.claude/ Dokumentation committen)
+
+### Zukünftige Features (siehe FEATURES.md)
+- TOTP/2FA Support (pyotp bereits installiert)
+- Browser-Plugins (Chrome, Firefox)
+- Import/Export (CSV, JSON, 1Password, LastPass)
+
+---
+
+## 15. Wichtige Hinweise für Nachfolger
+
+### Design-Philosophie
+- Apple-inspiriert: Flach, modern, clean
+- Sicherheit > Features
+- Benutzerfreundlichkeit = Priorität
+
+### Code-Standards
+- Python 3.8+ Type Hints verwenden
+- Dataclasses für Modelle
+- Singleton-Pattern für globale Services
+- PyQt6 Signals & Slots für Kommunikation
+- Logging statt print() verwenden (`logger = logging.getLogger(__name__)`)
+
+### Sicherheits-Checkliste
+- [ ] Niemals Passwörter in Plaintext loggen
+- [ ] Temporäre Dateien immer löschen
+- [ ] Verschlüsselung für alle sensiblen Daten
+- [ ] Auto-Lock nach Inaktivität
+- [ ] Sichere Zwischenablage
+
+### Testing
+- Alle neuen Features mit Tests abdecken
+- `pytest` vor jedem Commit ausführen
+- Coverage mindestens 80% halten
+
+---
+
+**Ende der Wissensdatenbank**
+
+Diese Datei wird automatisch aktualisiert bei signifikanten Änderungen.
+Bei Fragen oder Unklarheiten: Analysiere die entsprechenden Module direkt.
