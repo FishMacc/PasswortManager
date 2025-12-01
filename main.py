@@ -3,6 +3,8 @@ SecurePass Manager - Moderner Passwort-Manager mit verschlüsselten Datenbanken
 Entry Point der Anwendung
 """
 import sys
+import logging
+from pathlib import Path
 from PyQt6.QtWidgets import QApplication
 from src.core.database import DatabaseManager
 from src.core.settings import app_settings
@@ -12,8 +14,38 @@ from src.gui.main_window import MainWindow
 from src.gui.themes import theme
 
 
+def setup_logging():
+    """Konfiguriert das Logging-System"""
+    # Log-Verzeichnis erstellen
+    log_dir = Path.home() / ".securepass" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = log_dir / "securepass.log"
+
+    # Logging-Konfiguration
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler()  # Zusätzlich in Konsole
+        ]
+    )
+
+    # Setze Log-Level für externe Libraries höher
+    logging.getLogger('PyQt6').setLevel(logging.WARNING)
+
+    logger = logging.getLogger(__name__)
+    logger.info("SecurePass Manager gestartet")
+
+    return logger
+
+
 def main():
     """Hauptfunktion - Startet die Anwendung"""
+    # Logging initialisieren
+    logger = setup_logging()
+
     # Erstelle QApplication
     app = QApplication(sys.argv)
     app.setApplicationName("SecurePass Manager")

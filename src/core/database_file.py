@@ -7,11 +7,14 @@ Die gesamte SQLite-Datenbank wird verschlüsselt in einer einzigen Datei gespeic
 import os
 import sqlite3
 import tempfile
+import logging
 from pathlib import Path
 from typing import Optional
 from cryptography.fernet import Fernet
 import hashlib
 import base64
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseFile:
@@ -229,7 +232,7 @@ class DatabaseFile:
                 os.remove(self.temp_db_path)
                 self.temp_db_path = None
             except Exception as e:
-                print(f"Warnung: Konnte temporäre Datei nicht löschen: {e}")
+                logger.warning(f"Konnte temporäre Datei nicht löschen: {self.temp_db_path} - {e}")
 
     def change_master_password(self, old_password: str, new_password: str):
         """

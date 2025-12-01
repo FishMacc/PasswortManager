@@ -5,8 +5,11 @@ Speichert Benutzereinstellungen wie letzte Datenbank, Theme-Modus, etc.
 """
 import json
 import os
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class AppSettings:
@@ -48,7 +51,7 @@ class AppSettings:
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2)
         except Exception as e:
-            print(f"Fehler beim Speichern der Einstellungen: {e}")
+            logger.error(f"Fehler beim Speichern der Einstellungen: {e}")
 
     def get(self, key: str, default=None):
         """Gibt einen Einstellungswert zurück"""
