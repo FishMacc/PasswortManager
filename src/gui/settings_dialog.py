@@ -251,23 +251,23 @@ class SettingsDialog(QDialog):
 
         totp_layout.addWidget(info_container)
 
-        # 2FA Setup Button (disabled für jetzt) - mit Tooltip
-        self.totp_button = QPushButton("📱 2FA einrichten (Noch nicht verfügbar)")
+        # 2FA Info: Hinweis dass Feature im Entry-Dialog verfügbar ist
+        self.totp_button = QPushButton("✅ 2FA verfügbar im Passwort-Dialog")
         self.totp_button.setMinimumHeight(44)
-        self.totp_button.setEnabled(False)  # Noch nicht implementiert
-        self.totp_button.setToolTip("Diese Funktion wird in einer zukünftigen Version implementiert")
+        self.totp_button.setEnabled(False)  # Info-Button, nicht klickbar
+        self.totp_button.setToolTip("2FA kann beim Bearbeiten von Passwort-Einträgen aktiviert werden")
         self.totp_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {c['background_tertiary']};
-                color: {c['text_secondary']};
-                border: 2px solid {c['surface_border']};
+                background-color: {c['success']};
+                color: white;
+                border: none;
                 border-radius: 10px;
                 font-size: 14px;
                 font-weight: 600;
                 padding: 0 20px;
             }}
             QPushButton:disabled {{
-                opacity: 0.6;
+                opacity: 0.8;
             }}
         """)
         totp_layout.addWidget(self.totp_button)

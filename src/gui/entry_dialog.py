@@ -11,7 +11,9 @@ from PyQt6.QtGui import QFont
 from typing import Optional, List
 from ..core.models import PasswordEntry, Category
 from ..core.encryption import encryption_manager
+from ..core.totp_manager import totp_manager
 from .generator_dialog import PasswordGeneratorDialog
+from .totp_dialog import TOTPDialog
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
@@ -31,6 +33,8 @@ class PasswordEntryDialog(QDialog):
         self.entry = entry
         self.is_edit_mode = entry is not None
         self.password_visible = False
+        self.totp_secret = None  # Wird beim Setup oder Bearbeiten gesetzt
+        self.totp_update_timer = None  # Timer für Live-Code-Updates
         self.setup_ui()
 
         if self.is_edit_mode:
@@ -56,14 +60,14 @@ class PasswordEntryDialog(QDialog):
         self.setWindowTitle(title)
         self.setModal(True)
 
-        # Feste kompakte Größe
-        self.setMinimumSize(500, 580)
-        self.resize(500, 580)
+        # Feste kompakte Größe (größer für 2FA-Bereich)
+        self.setMinimumSize(500, 720)
+        self.resize(500, 720)
 
         # Zentriere auf Bildschirm
         screen_info = responsive.get_screen_info()
         x = (screen_info['screen_width'] - 500) // 2
-        y = (screen_info['screen_height'] - 580) // 2
+        y = (screen_info['screen_height'] - 720) // 2
         self.move(x, y)
 
         fonts = responsive.get_font_sizes()
@@ -272,6 +276,146 @@ class PasswordEntryDialog(QDialog):
 
         main_layout.addWidget(self.notes_container)
 
+        # === 2FA/TOTP ===
+        self.totp_container = QFrame()
+        self.totp_container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['surface']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 12px;
+            }}
+        """)
+        totp_layout = QVBoxLayout(self.totp_container)
+        totp_layout.setSpacing(10)
+        totp_layout.setContentsMargins(16, 16, 16, 16)
+
+        # Header mit Icon
+        totp_header_layout = QHBoxLayout()
+        totp_header_layout.setSpacing(8)
+
+        totp_icon_label = QLabel("🔐")
+        totp_icon_label.setStyleSheet("font-size: 16px; background: transparent; border: none;")
+        totp_header_layout.addWidget(totp_icon_label)
+
+        totp_label = QLabel("Zwei-Faktor-Authentifizierung (2FA/TOTP)")
+        totp_label.setStyleSheet(f"color: {c['text_primary']}; font-weight: 600; font-size: {fonts['body']}px; background: transparent; border: none;")
+        totp_header_layout.addWidget(totp_label)
+        totp_header_layout.addStretch()
+
+        totp_layout.addLayout(totp_header_layout)
+
+        # Setup/Remove Button
+        setup_icon = icon_provider.get_icon("shield", c['primary'], 16)
+        self.totp_setup_button = QPushButton(" 2FA einrichten")
+        self.totp_setup_button.setIcon(setup_icon)
+        self.totp_setup_button.setMinimumHeight(spacing['button_height'] - 6)
+        self.totp_setup_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.totp_setup_button.clicked.connect(self.setup_totp)
+        self.totp_setup_button.pressed.connect(lambda: animator.press(self.totp_setup_button, scale_factor=0.97, duration=120))
+        self.totp_setup_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['primary']};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: {fonts['body']-1}px;
+                font-weight: 600;
+                padding: 0 12px;
+            }}
+            QPushButton:hover {{
+                background-color: {c['primary_hover']};
+            }}
+        """)
+        totp_layout.addWidget(self.totp_setup_button)
+
+        # TOTP Code Anzeige (versteckt by default)
+        self.totp_code_frame = QFrame()
+        self.totp_code_frame.setVisible(False)
+        self.totp_code_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['background_tertiary']};
+                border: 2px solid {c['primary']};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
+        totp_code_layout = QVBoxLayout(self.totp_code_frame)
+        totp_code_layout.setSpacing(4)
+        totp_code_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Aktueller Code
+        code_label_layout = QHBoxLayout()
+        code_label_layout.setSpacing(8)
+
+        current_code_label = QLabel("Aktueller Code:")
+        current_code_label.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['body']-1}px; background: transparent; border: none;")
+        code_label_layout.addWidget(current_code_label)
+
+        self.totp_code_label = QLabel("000000")
+        code_font = QFont("Courier New", fonts['body']+2, QFont.Weight.Bold)
+        self.totp_code_label.setFont(code_font)
+        self.totp_code_label.setStyleSheet(f"color: {c['primary']}; background: transparent; border: none;")
+        code_label_layout.addWidget(self.totp_code_label)
+
+        self.totp_time_label = QLabel("(30s)")
+        self.totp_time_label.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['body']-2}px; background: transparent; border: none;")
+        code_label_layout.addWidget(self.totp_time_label)
+
+        code_label_layout.addStretch()
+
+        # Copy Code Button
+        copy_code_icon = icon_provider.get_icon("copy", c['text_primary'], 14)
+        self.copy_code_button = QPushButton()
+        self.copy_code_button.setIcon(copy_code_icon)
+        self.copy_code_button.setFixedSize(28, 28)
+        self.copy_code_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.copy_code_button.setToolTip("Code kopieren")
+        self.copy_code_button.clicked.connect(self.copy_totp_code)
+        self.copy_code_button.pressed.connect(lambda: animator.press(self.copy_code_button, scale_factor=0.9, duration=100))
+        self.copy_code_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                border: 1px solid {c['surface_border']};
+                border-radius: 6px;
+            }}
+            QPushButton:hover {{
+                background-color: {c['surface_hover']};
+            }}
+        """)
+        code_label_layout.addWidget(self.copy_code_button)
+
+        totp_code_layout.addLayout(code_label_layout)
+
+        # Entfernen Button
+        remove_icon = icon_provider.get_icon("trash", c['danger'], 14)
+        self.totp_remove_button = QPushButton(" 2FA entfernen")
+        self.totp_remove_button.setIcon(remove_icon)
+        self.totp_remove_button.setMinimumHeight(spacing['button_height'] - 10)
+        self.totp_remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.totp_remove_button.clicked.connect(self.remove_totp)
+        self.totp_remove_button.pressed.connect(lambda: animator.press(self.totp_remove_button, scale_factor=0.97, duration=120))
+        self.totp_remove_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {c['danger']};
+                border: 1px solid {c['danger']};
+                border-radius: 6px;
+                font-size: {fonts['body']-2}px;
+                font-weight: 500;
+                padding: 0 8px;
+                margin-top: 8px;
+            }}
+            QPushButton:hover {{
+                background-color: {c['danger']};
+                color: white;
+            }}
+        """)
+        totp_code_layout.addWidget(self.totp_remove_button)
+
+        totp_layout.addWidget(self.totp_code_frame)
+
+        main_layout.addWidget(self.totp_container)
+
         main_layout.addStretch()
 
         # === BUTTONS ===
@@ -332,34 +476,6 @@ class PasswordEntryDialog(QDialog):
         # Fokus
         QTimer.singleShot(100, lambda: self.name_input.setFocus())
 
-    def load_entry_data(self):
-        """Lädt die Daten des zu bearbeitenden Eintrags"""
-        if not self.entry:
-            return
-
-        self.name_input.setText(self.entry.name)
-        self.username_input.setText(self.entry.username or "")
-        self.website_input.setText(self.entry.website_url or "")
-
-        for i in range(self.category_combo.count()):
-            if self.category_combo.itemData(i) == self.entry.category_id:
-                self.category_combo.setCurrentIndex(i)
-                break
-
-        try:
-            decrypted_password = encryption_manager.decrypt(self.entry.encrypted_password)
-            self.password_input.setText(decrypted_password)
-        except Exception as e:
-            QMessageBox.warning(self, "Fehler", f"Fehler beim Entschlüsseln: {str(e)}")
-
-        if self.entry.encrypted_notes:
-            try:
-                decrypted_notes = encryption_manager.decrypt(self.entry.encrypted_notes)
-                self.notes_input.setPlainText(decrypted_notes)
-            except Exception as e:
-                logger.warning(f"Fehler beim Entschlüsseln der Notizen: {e}")
-                # Notizen-Feld leer lassen bei Entschlüsselungsfehler
-
     def toggle_password_visibility(self):
         """Toggle Passwort-Sichtbarkeit mit Icon-Wechsel"""
         c = theme.get_colors()
@@ -408,6 +524,7 @@ class PasswordEntryDialog(QDialog):
         try:
             encrypted_password = encryption_manager.encrypt(password)
             encrypted_notes = encryption_manager.encrypt(notes) if notes else None
+            encrypted_totp = totp_manager.encrypt_secret(self.totp_secret) if self.totp_secret else None
 
             if self.is_edit_mode:
                 self.entry.name = name
@@ -416,6 +533,7 @@ class PasswordEntryDialog(QDialog):
                 self.entry.encrypted_notes = encrypted_notes
                 self.entry.website_url = website
                 self.entry.category_id = category_id
+                self.entry.totp_secret = encrypted_totp
             else:
                 self.entry = PasswordEntry(
                     id=None,
@@ -424,7 +542,8 @@ class PasswordEntryDialog(QDialog):
                     username=username,
                     encrypted_password=encrypted_password,
                     encrypted_notes=encrypted_notes,
-                    website_url=website
+                    website_url=website,
+                    totp_secret=encrypted_totp
                 )
 
             self.entry_saved.emit(self.entry)
@@ -432,3 +551,141 @@ class PasswordEntryDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Fehler", f"Fehler beim Verschlüsseln: {str(e)}")
+
+    def setup_totp(self):
+        """Öffnet Dialog zum Einrichten von 2FA/TOTP"""
+        entry_name = self.name_input.text().strip() or "Account"
+
+        dialog = TOTPDialog(self, existing_secret=self.totp_secret, entry_name=entry_name)
+        dialog.totp_configured.connect(self.on_totp_configured)
+        dialog.exec()
+
+    def on_totp_configured(self, secret: str):
+        """Callback wenn TOTP konfiguriert wurde"""
+        self.totp_secret = secret
+
+        # UI aktualisieren
+        self.totp_setup_button.setVisible(False)
+        self.totp_code_frame.setVisible(True)
+
+        # Starte Live-Code-Updates
+        if self.totp_update_timer is None:
+            self.totp_update_timer = QTimer()
+            self.totp_update_timer.timeout.connect(self.update_totp_display)
+            self.totp_update_timer.start(1000)  # Jede Sekunde
+
+        self.update_totp_display()
+
+        # Animation
+        animator.fade_in(self.totp_code_frame, duration=300)
+
+    def update_totp_display(self):
+        """Aktualisiert die TOTP-Code-Anzeige"""
+        if not self.totp_secret:
+            return
+
+        try:
+            code = totp_manager.get_totp_code(self.totp_secret)
+            remaining = totp_manager.get_remaining_seconds()
+
+            self.totp_code_label.setText(code)
+            self.totp_time_label.setText(f"({remaining}s)")
+
+            # Warnung bei wenig Zeit
+            c = theme.get_colors()
+            if remaining <= 5:
+                self.totp_time_label.setStyleSheet(f"color: {c['danger']}; font-weight: bold; background: transparent; border: none;")
+            else:
+                fonts = responsive.get_font_sizes()
+                self.totp_time_label.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['body']-2}px; background: transparent; border: none;")
+
+        except Exception as e:
+            logger.error(f"Fehler beim Aktualisieren des TOTP-Codes: {e}")
+
+    def copy_totp_code(self):
+        """Kopiert den aktuellen TOTP-Code in die Zwischenablage"""
+        if not self.totp_secret:
+            return
+
+        try:
+            code = totp_manager.get_totp_code(self.totp_secret)
+
+            from PyQt6.QtWidgets import QApplication
+            clipboard = QApplication.clipboard()
+            clipboard.setText(code)
+
+            # Feedback
+            animator.pulse(self.totp_code_label, duration=400)
+
+            # Auto-clear nach 30 Sekunden (wie Passwort-Kopieren)
+            from ..utils.clipboard import clipboard_manager
+            clipboard_manager.copy_with_timer(code)
+
+        except Exception as e:
+            logger.error(f"Fehler beim Kopieren des TOTP-Codes: {e}")
+
+    def remove_totp(self):
+        """Entfernt 2FA/TOTP vom Eintrag"""
+        reply = QMessageBox.question(
+            self,
+            "2FA entfernen",
+            "Möchtest du wirklich die Zwei-Faktor-Authentifizierung für diesen Eintrag entfernen?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.totp_secret = None
+
+            # Stoppe Timer
+            if self.totp_update_timer:
+                self.totp_update_timer.stop()
+                self.totp_update_timer = None
+
+            # UI aktualisieren
+            self.totp_setup_button.setVisible(True)
+            self.totp_code_frame.setVisible(False)
+
+    def load_entry_data(self):
+        """Lädt vorhandene Eintragsdaten in die Felder (inkl. TOTP)"""
+        if not self.entry:
+            return
+
+        # Vorhandener Code...
+        self.name_input.setText(self.entry.name)
+        self.username_input.setText(self.entry.username or "")
+        self.website_input.setText(self.entry.website_url or "")
+
+        # Passwort entschlüsseln
+        try:
+            password = encryption_manager.decrypt(self.entry.encrypted_password)
+            self.password_input.setText(password)
+        except Exception as e:
+            logger.error(f"Fehler beim Entschlüsseln des Passworts: {e}")
+
+        # Notizen entschlüsseln
+        if self.entry.encrypted_notes:
+            try:
+                notes = encryption_manager.decrypt(self.entry.encrypted_notes)
+                self.notes_input.setPlainText(notes)
+            except Exception as e:
+                logger.error(f"Fehler beim Entschlüsseln der Notizen: {e}")
+
+        # Kategorie setzen
+        for i in range(self.category_combo.count()):
+            if self.category_combo.itemData(i) == self.entry.category_id:
+                self.category_combo.setCurrentIndex(i)
+                break
+
+        # TOTP laden
+        if self.entry.totp_secret:
+            try:
+                self.totp_secret = totp_manager.decrypt_secret(self.entry.totp_secret)
+                self.on_totp_configured(self.totp_secret)
+            except Exception as e:
+                logger.error(f"Fehler beim Entschlüsseln des TOTP-Secrets: {e}")
+
+    def closeEvent(self, event):
+        """Stoppe Timer beim Schließen"""
+        if self.totp_update_timer:
+            self.totp_update_timer.stop()
+        super().closeEvent(event)

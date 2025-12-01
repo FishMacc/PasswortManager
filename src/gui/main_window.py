@@ -335,6 +335,11 @@ class MainWindow(QMainWindow):
         """Wechselt zwischen Light und Dark Mode"""
         theme.toggle_mode()
 
+        # Speichere Theme-Einstellung
+        current_mode = theme.current_mode
+        theme_mode_str = "dark" if current_mode == ThemeMode.DARK else "light"
+        app_settings.set("theme_mode", theme_mode_str)
+
         # Wende globales Stylesheet an
         from PyQt6.QtWidgets import QApplication
         QApplication.instance().setStyleSheet(theme.get_stylesheet())
