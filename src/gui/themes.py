@@ -2,6 +2,7 @@
 Theme-System für Light und Dark Mode
 """
 from enum import Enum
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QPalette, QColor
 from PyQt6.QtWidgets import QApplication
 
@@ -12,8 +13,11 @@ class ThemeMode(Enum):
     DARK = "dark"
 
 
-class Theme:
+class Theme(QObject):
     """Theme-Verwaltung mit modernen Farben"""
+
+    # Signal wird emittiert, wenn das Theme gewechselt wird
+    theme_changed = pyqtSignal()
 
     # Light Mode Farben
     LIGHT = {
@@ -91,27 +95,27 @@ class Theme:
         "shadow_hover": "rgba(0, 0, 0, 0.6)",
     }
 
-    current_mode = ThemeMode.LIGHT
+    def __init__(self):
+        super().__init__()
+        self.current_mode = ThemeMode.LIGHT
 
-    @classmethod
-    def get_colors(cls):
+    def get_colors(self):
         """Gibt die aktuellen Theme-Farben zurück"""
-        return cls.DARK if cls.current_mode == ThemeMode.DARK else cls.LIGHT
+        return self.DARK if self.current_mode == ThemeMode.DARK else self.LIGHT
 
-    @classmethod
-    def toggle_mode(cls):
+    def toggle_mode(self):
         """Wechselt zwischen Light und Dark Mode"""
-        cls.current_mode = ThemeMode.DARK if cls.current_mode == ThemeMode.LIGHT else ThemeMode.LIGHT
+        self.current_mode = ThemeMode.DARK if self.current_mode == ThemeMode.LIGHT else ThemeMode.LIGHT
+        self.theme_changed.emit()
 
-    @classmethod
-    def set_mode(cls, mode: ThemeMode):
+    def set_mode(self, mode: ThemeMode):
         """Setzt einen bestimmten Theme-Modus"""
-        cls.current_mode = mode
+        self.current_mode = mode
+        self.theme_changed.emit()
 
-    @classmethod
-    def get_stylesheet(cls) -> str:
+    def get_stylesheet(self) -> str:
         """Gibt das globale Stylesheet zurück"""
-        c = cls.get_colors()
+        c = self.get_colors()
 
         return f"""
             /* Globale Styles */
@@ -392,10 +396,9 @@ class Theme:
             }}
         """
 
-    @classmethod
-    def apply_theme(cls, app: QApplication):
+    def apply_theme(self, app: QApplication):
         """Wendet das aktuelle Theme auf die Anwendung an"""
-        app.setStyleSheet(cls.get_stylesheet())
+        app.setStyleSheet(self.get_stylesheet())
 
 
 # Globale Theme-Instanz
