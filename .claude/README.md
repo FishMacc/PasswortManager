@@ -10,9 +10,36 @@ Dieses Verzeichnis enthält die kontinuierliche Wissensbasis für Claude Code As
 
 → Enthält **fertige Prompts** zum Kopieren für neue Chat-Fenster!
 
+## 🚨 KRITISCH: Session-Management
+
+**FÜR AI-ENTWICKLER: LESE DIES ZUERST!** [`SESSION_MANAGEMENT.md`](SESSION_MANAGEMENT.md)
+
+→ **Auto-Compact kann die Wissensdatenbank zerstören!**
+→ Token-Budget Management & Wiederherstellungs-Strategien
+
 ---
 
 ## Dateien-Übersicht
+
+### 🚨 `SESSION_MANAGEMENT.md` (KRITISCH - ZUERST LESEN!)
+**Zweck**: Verhindere Auto-Compact Beschädigung der Wissensdatenbank
+
+**Inhalt**:
+- Token-Budget Management (Grün/Gelb/Orange/Rot Zonen)
+- Was tun bei 100k, 150k, 180k Tokens
+- Backup-Strategien
+- Wiederherstellung nach Auto-Compact
+- Best Practices für lange Sessions
+
+**Wann lesen**:
+- **Bei JEDER neuen Session** - Pflichtlektüre!
+- **Bei ~100k Tokens** - Backup-Strategien aktivieren
+- **Bei ~150k Tokens** - Kritische Zone erreicht
+- **Nach Auto-Compact** - Wiederherstellung
+
+⚠️ **WICHTIG**: Diese Datei kann dich vor Datenverlust bewahren!
+
+---
 
 ### 🎯 `HOW_TO_USE.md` (START HIER!)
 **Zweck**: Anleitung für neue Chat-Fenster mit fertigen Prompts
@@ -198,14 +225,17 @@ Dieses Verzeichnis enthält die kontinuierliche Wissensbasis für Claude Code As
 
 ### 1. Neues Chat-Fenster startet
 ```
-1. Lese `.claude/QUICK_START.md` (2 Min.)
-2. Konsultiere `.claude/knowledge-base.md` bei Bedarf
-3. Schaue in `.claude/SESSION_LOG.md` für letzten Stand
-4. Beginne mit Arbeit
+1. ⚠️ PFLICHT: Lese `.claude/SESSION_MANAGEMENT.md` (Token-Budget!)
+2. Lese `.claude/QUICK_START.md` (2 Min.)
+3. Konsultiere `.claude/knowledge-base.md` bei Bedarf
+4. Schaue in `.claude/SESSION_LOG.md` für letzten Stand
+5. Beginne mit Arbeit
 ```
 
 ### 2. Während der Arbeit
 ```
+- ⚠️ Token-Tracking: Überwache kontinuierlich Token-Nutzung
+- Bei ~100k Tokens: Erstelle Backup (siehe SESSION_MANAGEMENT.md)
 - Bei Fragen: Konsultiere `knowledge-base.md`
 - Bei Code-Suche: Nutze Datei-Referenzen (Pfad:Zeile)
 - Bei Issues: Schaue in "Bekannte Issues" Sektion
@@ -213,9 +243,10 @@ Dieses Verzeichnis enthält die kontinuierliche Wissensbasis für Claude Code As
 
 ### 3. Am Ende der Session
 ```
-1. Aktualisiere `SESSION_LOG.md` (Changelog)
-2. Bei größeren Änderungen: Aktualisiere `knowledge-base.md`
-3. Commit (wenn nötig)
+1. 💾 WICHTIG: Committe knowledge-base.md (falls geändert)
+2. Aktualisiere `SESSION_LOG.md` (Changelog)
+3. Bei größeren Änderungen: Aktualisiere `knowledge-base.md`
+4. Finaler Commit & Push
 ```
 
 ---

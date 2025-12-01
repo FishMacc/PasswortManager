@@ -4,10 +4,11 @@
 
 ## ⚡ TL;DR - Schnellversion
 
-**Kopiere einfach diesen Prompt in ein neues Chat-Fenster:**
+**🚨 FÜR AI-ENTWICKLER: Kopiere diesen Prompt in ein neues Chat-Fenster:**
 
 ```
 Lies bitte die Wissensdatenbank im .claude/ Verzeichnis, damit du das Projekt verstehst:
+- .claude/SESSION_MANAGEMENT.md - KRITISCH! Token-Budget Management (lese ZUERST!)
 - .claude/QUICK_START.md für einen schnellen Überblick
 - .claude/knowledge-base.md für Details bei Bedarf
 - .claude/PROJECT_MAP.md für visuelle Orientierung
@@ -16,6 +17,8 @@ Danach können wir mit der Arbeit starten.
 ```
 
 **Das war's!** Claude liest automatisch die Dateien und ist auf dem gleichen Stand.
+
+⚠️ **WICHTIG**: SESSION_MANAGEMENT.md ZUERST lesen - verhindert Auto-Compact Datenverlust!
 
 ---
 
@@ -40,6 +43,7 @@ Schau dir .claude/QUICK_START.md an bevor wir starten.
 
 ```
 Lies bitte die Wissensdatenbank:
+- .claude/SESSION_MANAGEMENT.md (Token-Budget - WICHTIG!)
 - .claude/QUICK_START.md (Überblick)
 - .claude/knowledge-base.md (Details)
 
@@ -62,10 +66,11 @@ Dann helfe mir bei [DEINE AUFGABE].
 Ich arbeite am SecurePass Manager (Python Passwort-Manager).
 
 Bitte lies die vollständige Wissensdatenbank im .claude/ Verzeichnis:
-1. .claude/QUICK_START.md - Schneller Überblick
-2. .claude/knowledge-base.md - Vollständige Dokumentation
-3. .claude/PROJECT_MAP.md - Visuelle Projekt-Struktur
-4. .claude/SESSION_LOG.md - Letzte Änderungen
+1. .claude/SESSION_MANAGEMENT.md - Token-Budget Management (ZUERST LESEN!)
+2. .claude/QUICK_START.md - Schneller Überblick
+3. .claude/knowledge-base.md - Vollständige Dokumentation
+4. .claude/PROJECT_MAP.md - Visuelle Projekt-Struktur
+5. .claude/SESSION_LOG.md - Letzte Änderungen
 
 Danach möchte ich [DEINE AUFGABE].
 ```
@@ -355,6 +360,7 @@ Was wurde zuletzt geändert?
 
 | Datei | Zweck | Wann lesen? |
 |-------|-------|-------------|
+| `SESSION_MANAGEMENT.md` ⚠️ | Token-Budget Management | **IMMER ZUERST! (Pflicht)** |
 | `QUICK_START.md` | Schneller Überblick | Immer (Standard) |
 | `knowledge-base.md` | Vollständige Doku | Komplexe Aufgaben |
 | `PROJECT_MAP.md` | Visuelle Struktur | Orientierung, neue Features |
@@ -368,11 +374,17 @@ Was wurde zuletzt geändert?
 ### Der perfekte Prompt für 90% der Fälle:
 
 ```
-Lies die Wissensdatenbank (.claude/QUICK_START.md und knowledge-base.md).
+Lies die Wissensdatenbank im .claude/ Verzeichnis:
+- .claude/SESSION_MANAGEMENT.md (Token-Budget - ZUERST!)
+- .claude/QUICK_START.md (Überblick)
+- .claude/knowledge-base.md (Details)
+
 Dann helfe mir bei [DEINE AUFGABE].
 ```
 
 **Das war's!**
+
+⚠️ **KRITISCH**: SESSION_MANAGEMENT.md verhindert Auto-Compact Datenverlust!
 
 ---
 

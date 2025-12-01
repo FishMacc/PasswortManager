@@ -4,6 +4,47 @@
 
 ---
 
+## ⚠️ WICHTIG: Session-Management für AI-Entwickler
+
+### Token-Budget & Auto-Compact
+- **Token-Budget**: 200.000 Tokens pro Session
+- **Problem**: Bei längeren Sessions kann Auto-Compact die Wissensdatenbank beschädigen
+- **Gefahr**: knowledge-base.md kann auf "Siehe vorherige Edits..." reduziert werden
+
+### ✅ BESTE PRAKTIKEN für lange Sessions
+
+1. **Vor großen Updates** (ab ~150.000 Tokens):
+   ```bash
+   # Erstelle Backup der Wissensdatenbank
+   cp .claude/knowledge-base.md .claude/knowledge-base-backup.md
+   ```
+
+2. **Bei ~180.000 Tokens** (KRITISCH):
+   - **STOPPE alle großen Edits**
+   - Committe aktuelle Änderungen sofort
+   - Speichere knowledge-base.md in Git
+   - Session beenden oder neu starten
+
+3. **Wiederherstellung** (falls Auto-Compact zugeschlagen hat):
+   ```bash
+   # Stelle aus Git wieder her
+   git checkout HEAD -- .claude/knowledge-base.md
+
+   # Oder aus Backup
+   cp .claude/knowledge-base-backup.md .claude/knowledge-base.md
+   ```
+
+4. **Token-Tracking**:
+   - Überwache Token-Nutzung kontinuierlich
+   - Bei großen Dokumentations-Updates: Mehrere kleinere Sessions statt einer langen
+
+### 🚨 NIEMALS:
+- ❌ knowledge-base.md bei >180k Tokens bearbeiten
+- ❌ Große Write-Operationen kurz vor Token-Limit
+- ❌ Session ohne Commit beenden bei wichtigen Änderungen
+
+---
+
 ## 1. Was ist das Projekt?
 
 **SecurePass Manager** - Python Passwort-Manager mit PyQt6

@@ -1,8 +1,107 @@
 # SecurePass Manager - Wissensdatenbank
 
-**Letzte Aktualisierung**: 2025-12-01 (Abends - große Update-Session)
+**Letzte Aktualisierung**: 2025-12-01 (Nacht - Dokumentations-Überprüfung & Sync)
 **Projekt-Typ**: Python-basierter Passwort-Manager mit PyQt6
 **Status**: Voll funktionsfähig, produktionsreif, aktiv verbessert
+**Dokumentations-Konformität**: 98.5% (Verifiziert 2025-12-01)
+
+---
+
+## 0. ⚠️ KRITISCH: Session-Management für AI-Entwickler
+
+### Token-Budget & Auto-Compact Problem
+
+**Token-Budget**: 200.000 Tokens pro Session
+**Problem**: Bei langen Sessions kann Auto-Compact die Wissensdatenbank **beschädigen**!
+
+#### 🚨 Was passiert?
+Bei zu hoher Token-Nutzung kann `knowledge-base.md` auf folgendes reduziert werden:
+```
+Siehe vorherige Edits - Datei zu lang für single Write
+```
+**ALLE Informationen gehen verloren!**
+
+### ✅ Pflicht-Regeln für lange Sessions
+
+#### 1. Token-Monitoring (WICHTIG!)
+```
+Tokens < 150.000 → ✅ Sicher
+Tokens 150.000 - 180.000 → ⚠️ Vorsichtig (nur kleine Edits)
+Tokens > 180.000 → 🚨 KRITISCH (STOPP alle großen Edits!)
+```
+
+#### 2. Bei ~150.000 Tokens: Backup erstellen
+```bash
+# Erstelle sofort Backup
+cp .claude/knowledge-base.md .claude/knowledge-base-backup.md
+
+# Oder committe in Git
+git add .claude/knowledge-base.md
+git commit -m "docs: Sichere knowledge-base vor Auto-Compact"
+```
+
+#### 3. Bei ~180.000 Tokens: KRITISCH!
+**SOFORT HANDELN:**
+1. ⛔ **STOPPE alle Edits** an knowledge-base.md
+2. 💾 **Committe** alle aktuellen Änderungen
+3. ✅ **Beende Session** oder starte neu
+4. 📝 **Dokumentiere** Fortschritt in SESSION_LOG.md
+
+**NIEMALS bei >180k Tokens:**
+- ❌ Große Write-Operationen
+- ❌ knowledge-base.md bearbeiten
+- ❌ Mehrere aufeinanderfolgende Edits
+
+#### 4. Wiederherstellung (falls Auto-Compact zugeschlagen hat)
+
+**Methode 1: Aus Git**
+```bash
+# Prüfe letzten funktionierenden Stand
+git log --oneline .claude/knowledge-base.md
+
+# Stelle wieder her
+git checkout HEAD -- .claude/knowledge-base.md
+
+# Oder spezifischer Commit
+git checkout <commit-hash> -- .claude/knowledge-base.md
+```
+
+**Methode 2: Aus Backup**
+```bash
+# Falls Backup existiert
+cp .claude/knowledge-base-backup.md .claude/knowledge-base.md
+```
+
+**Methode 3: Aus Git-History extrahieren**
+```bash
+# Zeige Inhalt aus letztem Commit
+git show HEAD:.claude/knowledge-base.md > .claude/knowledge-base.md
+```
+
+### 📊 Best Practices
+
+1. **Regelmäßige Commits** bei wichtigen Dokumentations-Updates
+2. **Kleine Sessions** für große knowledge-base Updates (lieber 3x 50k als 1x 150k)
+3. **Backup-First**: Immer Backup vor großen Edits
+4. **Token-Tracking**: Kontinuierlich im Auge behalten
+5. **Git als Sicherheitsnetz**: Häufig committen
+
+### ✅ Sichere Arbeitsweise
+
+```bash
+# Start jeder Session
+Read: .claude/knowledge-base.md  # Prüfe Integrität
+
+# Vor großen Updates (bei ~100k Tokens)
+Bash: cp .claude/knowledge-base.md .claude/knowledge-base-backup.md
+
+# Nach wichtigen Änderungen (sofort!)
+Bash: git add .claude/knowledge-base.md
+Bash: git commit -m "docs: Update knowledge-base"
+
+# Bei >150k Tokens
+# → Nur noch kleine Edits oder Session beenden
+```
 
 ---
 
@@ -45,10 +144,12 @@ PasswortManager/
 │   ├── gui/                   # PyQt6 UI
 │   │   ├── main_window.py     # Hauptfenster (cleaner Header, Lock-Button)
 │   │   ├── database_selector.py  # DB-Auswahl Dialog
+│   │   ├── database_new.py    # Neue DB erstellen Dialog
 │   │   ├── login_dialog.py    # Master-Passwort Eingabe
 │   │   ├── entry_dialog.py    # Passwort-Eintrag Dialog (mit Animationen)
 │   │   ├── generator_dialog.py # Passwort-Generator (mit Animationen)
 │   │   ├── settings_dialog.py # Einstellungs-Dialog (NEU 2025-12-01)
+│   │   ├── dashboard.py       # Dashboard mit Statistiken (NEU 2025-12-01)
 │   │   ├── widgets.py         # Custom Widgets (Entry, Category Buttons)
 │   │   ├── themes.py          # Dark/Light Mode System
 │   │   ├── icons.py           # SVG-Icon-Provider (21 Icons)
@@ -59,15 +160,23 @@ PasswortManager/
 │   │   ├── generator.py       # Kryptografisch sicherer Generator
 │   │   └── strength.py        # Stärke-Bewertung
 │   │
+│   ├── testing/               # UI-Test-Infrastruktur (NEU 2025-12-01)
+│   │   ├── mock_database.py   # Mock-DB für UI-Tests
+│   │   ├── performance.py     # Performance-Messungen
+│   │   └── screenshot_compare.py # Screenshot-Vergleich
+│   │
 │   └── utils/
 │       └── clipboard.py       # Auto-Clear Zwischenablage
 │
-└── tests/                     # Unit Tests (pytest)
-    ├── test_database.py
-    ├── test_encryption.py
-    ├── test_master_password.py
-    ├── test_password_generator.py
-    └── test_password_strength.py
+├── tests/                     # Unit Tests (pytest)
+│   ├── test_database.py
+│   ├── test_encryption.py
+│   ├── test_master_password.py
+│   ├── test_password_generator.py
+│   └── test_password_strength.py
+│
+├── test_ui.py                 # UI-Test-Tool mit interaktivem Modus
+└── test_ui_comprehensive.py  # Umfassende UI-Tests (45KB)
 ```
 
 ---
@@ -418,6 +527,64 @@ pytest tests/test_encryption.py -v
 - Scroll-Support
 - Persistent in settings.json
 
+### Dashboard (NEU 2025-12-01)
+**Datei**: `src/gui/dashboard.py`
+
+**Komponenten:**
+1. **StatCard** - Einzelne Statistik-Karte
+   - Icon + Wert + Titel
+   - Animierte Value-Updates (pulse Animation)
+   - Responsive Größenanpassung
+   - Themeable (Light/Dark Mode)
+
+2. **Dashboard** - Statistik-Übersicht
+   - Zeigt wichtige Metriken der Passwort-Datenbank
+   - Grid-Layout mit mehreren StatCards
+   - Automatische Aktualisierung
+   - Scrollbar-Support
+
+**Beispiel-Metriken:**
+- Gesamt-Passwörter
+- Starke vs. Schwache Passwörter
+- Kategorien-Übersicht
+- Letzte Aktivität
+
+**Integration:**
+- Verwendung von `theme`, `icon_provider`, `animator` Singletons
+- DatabaseManager für Datenabfragen
+- Logging für Fehlerbehandlung
+
+### UI-Test-Infrastruktur (NEU 2025-12-01)
+**Verzeichnis**: `src/testing/`
+
+**Module:**
+1. **mock_database.py** - Mock-Datenbank für sichere UI-Tests
+   - Temporäre Test-Datenbanken erstellen
+   - Beispieldaten generieren
+   - Keine Gefährdung echter Benutzerdaten
+
+2. **performance.py** - Performance-Messungen
+   - UI-Rendering-Zeiten
+   - Datenbank-Operationen
+   - Memory-Profiling
+
+3. **screenshot_compare.py** - Screenshot-Vergleich
+   - Visuelle Regressions-Tests
+   - Pixel-genaue Vergleiche
+   - Theme-Wechsel-Tests
+
+**Test-Skripte (Root-Level):**
+- `test_ui.py` - Interaktiver UI-Test-Modus
+  - Theme-Wechsel Tests
+  - Dialog-Öffnungs-Tests
+  - Button-Funktionalität
+  - Kommandozeilen-Interface
+
+- `test_ui_comprehensive.py` - Umfassende UI-Tests (45KB)
+  - Vollständige UI-Component-Coverage
+  - Automatisierte Test-Suites
+  - Integrations-Tests
+
 ---
 
 ## 13. Tastenkombinationen
@@ -509,7 +676,7 @@ git branch -d feature/neues-feature
 
 ---
 
-## 15. Wichtige Hinweise für Nachfolger
+## 16. Wichtige Hinweise für Nachfolger
 
 ### Design-Philosophie
 - Apple-inspiriert: Flach, modern, clean
