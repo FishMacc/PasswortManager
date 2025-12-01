@@ -181,6 +181,7 @@ class PasswordEntryDialog(QDialog):
         self.toggle_password_button.setIcon(eye_icon)
         self.toggle_password_button.setFixedSize(spacing['button_height'], spacing['button_height'])
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
+        self.toggle_password_button.pressed.connect(lambda: animator.press(self.toggle_password_button, scale_factor=0.90, duration=100))
         self.toggle_password_button.setToolTip("Anzeigen/Verstecken")
         self.toggle_password_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.toggle_password_button.setStyleSheet(f"""
@@ -202,6 +203,7 @@ class PasswordEntryDialog(QDialog):
         self.generate_button.setIcon(dice_icon)
         self.generate_button.setFixedSize(spacing['button_height'], spacing['button_height'])
         self.generate_button.clicked.connect(self.open_generator)
+        self.generate_button.pressed.connect(lambda: animator.press(self.generate_button, scale_factor=0.90, duration=100))
         self.generate_button.setToolTip("Generator")
         self.generate_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.generate_button.setStyleSheet(f"""
@@ -280,6 +282,7 @@ class PasswordEntryDialog(QDialog):
         self.cancel_button.setMinimumWidth(100)
         self.cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_button.clicked.connect(self.reject)
+        self.cancel_button.pressed.connect(lambda: animator.press(self.cancel_button, scale_factor=0.97, duration=120))
         self.cancel_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['background_tertiary']};
@@ -304,6 +307,7 @@ class PasswordEntryDialog(QDialog):
         self.save_button.setMinimumWidth(120)
         self.save_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_button.clicked.connect(self.save_entry)
+        self.save_button.pressed.connect(lambda: animator.press(self.save_button, scale_factor=0.96, duration=120))
         self.save_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['primary']};

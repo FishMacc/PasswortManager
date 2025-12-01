@@ -130,6 +130,7 @@ class PasswordGeneratorDialog(QDialog):
         self.copy_button.setFixedSize(56, 56)
         self.copy_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.copy_button.clicked.connect(self.copy_password)
+        self.copy_button.pressed.connect(lambda: animator.press(self.copy_button, scale_factor=0.90, duration=100))
         self.copy_button.setToolTip("In Zwischenablage kopieren")
         self.copy_button.setStyleSheet(f"""
             QPushButton {{
@@ -361,6 +362,7 @@ class PasswordGeneratorDialog(QDialog):
         self.regenerate_button.setMinimumHeight(48)
         self.regenerate_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.regenerate_button.clicked.connect(self.generate_password)
+        self.regenerate_button.pressed.connect(lambda: animator.press(self.regenerate_button, scale_factor=0.97, duration=120))
         self.regenerate_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['background_tertiary']};
@@ -413,6 +415,7 @@ class PasswordGeneratorDialog(QDialog):
         self.accept_button.setMinimumWidth(140)
         self.accept_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.accept_button.clicked.connect(self.accept_password)
+        self.accept_button.pressed.connect(lambda: animator.press(self.accept_button, scale_factor=0.96, duration=120))
         self.accept_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['primary']};

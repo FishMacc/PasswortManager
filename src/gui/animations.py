@@ -197,6 +197,46 @@ class AnimationHelper:
         widget._pulse_animation = sequence
 
     @staticmethod
+    def press(widget: QWidget, scale_factor: float = 0.95, duration: int = 100):
+        """
+        Press Animation (Button wird beim Drücken kleiner)
+
+        Optimiert für Button-Press-Effekte - schnelle, subtile Scale-Animation
+
+        Args:
+            widget: Das zu animierende Widget (typischerweise QPushButton)
+            scale_factor: Verkleinerungsfaktor (0.95 = 95% der Größe)
+            duration: Dauer in Millisekunden (sollte kurz sein, 100-150ms)
+        """
+        original_size = widget.size()
+        pressed_size = QSize(
+            int(original_size.width() * scale_factor),
+            int(original_size.height() * scale_factor)
+        )
+
+        # Verkleinern (schnell)
+        shrink = QPropertyAnimation(widget, b"size")
+        shrink.setDuration(duration)
+        shrink.setStartValue(original_size)
+        shrink.setEndValue(pressed_size)
+        shrink.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        # Zurück zur Originalgröße (etwas langsamer für smooth release)
+        expand = QPropertyAnimation(widget, b"size")
+        expand.setDuration(int(duration * 1.5))
+        expand.setStartValue(pressed_size)
+        expand.setEndValue(original_size)
+        expand.setEasingCurve(QEasingCurve.Type.OutElastic)
+
+        # Sequenz
+        sequence = QSequentialAnimationGroup(widget)
+        sequence.addAnimation(shrink)
+        sequence.addAnimation(expand)
+
+        sequence.start()
+        widget._press_animation = sequence
+
+    @staticmethod
     def shake(widget: QWidget, intensity: int = 10, duration: int = 50, times: int = 3):
         """
         Shake Animation (für Fehler-Feedback)
