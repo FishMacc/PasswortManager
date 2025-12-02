@@ -41,10 +41,29 @@ class DatabaseManager:
             self.conn = sqlite3.connect(self.temp_db_path)
             self.conn.row_factory = sqlite3.Row
 
+            # Führe Migrations für bestehende Datenbanken aus
+            self._run_migrations()
+
         except ValueError as e:
             raise ValueError(f"Fehler beim Öffnen der Datenbank: {str(e)}")
         except Exception as e:
             raise Exception(f"Unerwarteter Fehler: {str(e)}")
+
+    def _run_migrations(self):
+        """Führt notwendige Migrations für bestehende Datenbanken aus"""
+        cursor = self.conn.cursor()
+
+        # Migration 1: totp_secret Spalte hinzufügen (2025-12-02)
+        # Prüfe ob totp_secret Spalte existiert
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'totp_secret' not in columns:
+            # Füge totp_secret Spalte hinzu
+            cursor.execute("ALTER TABLE users ADD COLUMN totp_secret BLOB")
+            self.conn.commit()
+            # Speichere in verschlüsselte Datei
+            self.save_changes()
 
     def save_changes(self):
         """Speichert Änderungen zurück in die verschlüsselte Datei"""
