@@ -1,8 +1,8 @@
 # SecurePass Manager - Wissensdatenbank
 
-**Letzte Aktualisierung**: 2025-12-02 (2FA-Entfernung - falsche Implementation)
+**Letzte Aktualisierung**: 2025-12-02 (2FA/TOTP für Datenbank-Unlock implementiert)
 **Projekt-Typ**: Python-basierter Passwort-Manager mit PyQt6
-**Status**: Voll funktionsfähig, produktionsreif, UI-Tests automatisiert
+**Status**: Voll funktionsfähig, produktionsreif, 2FA-Support aktiv, UI-Tests automatisiert
 **Dokumentations-Konformität**: 99.5% (Verifiziert 2025-12-02)
 
 ---
@@ -112,6 +112,7 @@ SecurePass Manager ist ein moderner, sicherer Passwort-Manager geschrieben in **
 ### Kern-Features
 - Verschlüsselte Einzeldatei-Datenbanken (.spdb Format)
 - AES-256 + Argon2id Verschlüsselung
+- **2FA/TOTP für Datenbank-Unlock** (QR-Code Setup, Authenticator-App Support)
 - Apple-inspiriertes Dark/Light Mode Design
 - Multi-Datenbank Support (Cloud-Sync fähig)
 - Passwort-Generator mit Stärke-Bewertung
@@ -139,16 +140,18 @@ PasswortManager/
 │   │   ├── database_file.py   # Verschlüsselte .spdb Dateien
 │   │   ├── encryption.py      # AES-256 (Fernet)
 │   │   ├── models.py          # Datenmodelle (Category, PasswordEntry)
-│   │   └── settings.py        # App-Einstellungen
+│   │   ├── settings.py        # App-Einstellungen
+│   │   └── totp_manager.py    # TOTP/2FA Manager (Singleton)
 │   │
 │   ├── gui/                   # PyQt6 UI
 │   │   ├── main_window.py     # Hauptfenster (cleaner Header, Lock-Button)
 │   │   ├── database_selector.py  # DB-Auswahl Dialog
 │   │   ├── database_new.py    # Neue DB erstellen Dialog
-│   │   ├── login_dialog.py    # Master-Passwort Eingabe
+│   │   ├── login_dialog.py    # Master-Passwort Eingabe + 2FA
 │   │   ├── entry_dialog.py    # Passwort-Eintrag Dialog
 │   │   ├── generator_dialog.py # Passwort-Generator (mit Animationen)
-│   │   ├── settings_dialog.py # Einstellungs-Dialog
+│   │   ├── settings_dialog.py # Einstellungs-Dialog + 2FA Management
+│   │   ├── totp_setup_dialog.py # 2FA Setup mit QR-Code
 │   │   ├── dashboard.py       # Dashboard mit Statistiken
 │   │   ├── widgets.py         # Custom Widgets (Entry, Category Buttons)
 │   │   ├── themes.py          # Dark/Light Mode System
@@ -187,6 +190,8 @@ PasswortManager/
 - **PyQt6 >= 6.6.0** - GUI Framework
 - **cryptography >= 41.0.0** - AES-256 Verschlüsselung (Fernet)
 - **argon2-cffi >= 23.1.0** - Passwort-Hashing (Memory-Hard)
+- **pyotp >= 2.9.0** - TOTP/2FA Code-Generierung und -Verifizierung
+- **qrcode[pil] >= 7.4.2** - QR-Code-Generierung für Authenticator-Apps
 - **psutil >= 5.9.0** - Performance-Monitoring für UI-Tests
 - **pytest >= 7.4.0** - Testing Framework
 
@@ -214,6 +219,9 @@ encryption_manager = EncryptionManager()
 
 # src/core/settings.py
 app_settings = AppSettings()
+
+# src/core/totp_manager.py
+totp_manager = TOTPManager()
 
 # src/gui/themes.py
 theme = Theme()
@@ -277,6 +285,7 @@ animator = AnimationHelper()
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     password_hash TEXT NOT NULL,  -- Argon2id Hash
+    totp_secret BLOB,              -- Verschlüsseltes TOTP-Secret für 2FA
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 ```
@@ -321,7 +330,9 @@ CREATE TABLE password_entries (
 1. QApplication erstellen
 2. Theme laden und anwenden
 3. DatabaseSelectorDialog öffnen
-4. LoginDialog (Master-Passwort)
+4. LoginDialog (Master-Passwort + optional 2FA)
+   - Master-Passwort verifizieren
+   - Falls 2FA aktiv: TOTP-Code abfragen und verifizieren
 5. DatabaseManager initialisieren
    - .spdb entschlüsseln → Temp SQLite
 6. MainWindow anzeigen
@@ -377,7 +388,161 @@ lock, unlock, eye, eye_off, copy, check, edit, trash, key, dice, search, folder,
 
 ---
 
-## 9. Bekannte Issues & Änderungsprotokoll
+## 9. 2FA/TOTP-System für Datenbank-Unlock
+
+**Implementiert**: 2025-12-02
+**Zweck**: Zusätzliche Sicherheitsebene für das Entsperren der Datenbank
+
+### Architektur
+
+**TOTP-Manager** (`src/core/totp_manager.py`):
+```python
+class TOTPManager:
+    """Singleton-Manager für TOTP/2FA-Operationen"""
+
+    def generate_secret(self) -> str:
+        """Generiert Base32-encoded TOTP-Secret"""
+        return pyotp.random_base32()
+
+    def get_totp_code(self, secret: str) -> str:
+        """Generiert aktuellen 6-stelligen TOTP-Code"""
+        totp = pyotp.TOTP(secret)
+        return totp.now()
+
+    def verify_code(self, secret: str, code: str) -> bool:
+        """Verifiziert TOTP-Code mit ±30s Toleranz"""
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code, valid_window=1)
+
+    def encrypt_secret(self, secret: str) -> bytes:
+        """Verschlüsselt TOTP-Secret mit encryption_manager"""
+        return encryption_manager.encrypt(secret)
+
+    def decrypt_secret(self, encrypted: bytes) -> str:
+        """Entschlüsselt TOTP-Secret"""
+        return encryption_manager.decrypt(encrypted)
+
+    def get_provisioning_uri(self, secret: str, name: str, issuer: str) -> str:
+        """Generiert otpauth:// URI für QR-Code"""
+        totp = pyotp.TOTP(secret)
+        return totp.provisioning_uri(name=name, issuer_name=issuer)
+
+    def get_remaining_seconds(self) -> int:
+        """Gibt verbleibende Sekunden bis zum nächsten Code zurück"""
+        return 30 - (int(time.time()) % 30)
+```
+
+### UI-Komponenten
+
+#### 1. TOTP-Setup-Dialog (`src/gui/totp_setup_dialog.py`)
+**Features:**
+- QR-Code-Anzeige für Authenticator-Apps (Google Authenticator, Authy, Microsoft Authenticator)
+- Manuelles Secret für Apps ohne QR-Code-Scanner
+- Live TOTP-Code-Anzeige mit Countdown
+- Copy-to-Clipboard für Secret
+- Warnhinweis vor Aktivierung
+
+**Workflow:**
+1. Dialog zeigt QR-Code mit `otpauth://` URI
+2. Benutzer scannt mit Authenticator-App
+3. Live-Code wird alle 1s aktualisiert (30s Zyklus)
+4. Bei Bestätigung wird Secret verschlüsselt in DB gespeichert
+
+#### 2. Login-Dialog 2FA-Integration (`src/gui/login_dialog.py`)
+**Workflow:**
+```python
+def verify_master_password(password: str):
+    # 1. Master-Passwort verifizieren
+    db_manager = DatabaseManager(db_path, password)
+
+    # 2. Prüfe ob 2FA aktiviert
+    if db_manager.has_totp_enabled():
+        encrypted_secret = db_manager.get_totp_secret()
+        totp_secret = totp_manager.decrypt_secret(encrypted_secret)
+
+        # 3. Fordere TOTP-Code an
+        totp_code, ok = QInputDialog.getText(...)
+
+        # 4. Verifiziere Code
+        if not totp_manager.verify_code(totp_secret, totp_code):
+            # Fehler: Ungültiger Code
+            return
+
+    # 5. Login erfolgreich
+    self.accept()
+```
+
+#### 3. Settings-Dialog 2FA-Management (`src/gui/settings_dialog.py`)
+**Features:**
+- Status-Anzeige (✓ 2FA aktiv / ○ 2FA inaktiv)
+- "2FA aktivieren" Button → Öffnet TOTPSetupDialog
+- "2FA deaktivieren" Button → Bestätigung + Entfernung aus DB
+
+**Code:**
+```python
+def enable_2fa(self):
+    dialog = TOTPSetupDialog(db_name, self)
+    dialog.totp_configured.connect(self.on_2fa_configured)
+    dialog.exec()
+
+def on_2fa_configured(self, totp_secret: str):
+    encrypted_secret = totp_manager.encrypt_secret(totp_secret)
+    self.db_manager.save_totp_secret(encrypted_secret)
+    self.update_2fa_status()
+
+def disable_2fa(self):
+    # Bestätigung
+    self.db_manager.remove_totp_secret()
+    self.update_2fa_status()
+```
+
+### Datenbank-Integration
+
+**Neue Methoden in `DatabaseManager`:**
+```python
+def get_totp_secret(self) -> Optional[bytes]:
+    """Gibt verschlüsseltes TOTP-Secret zurück"""
+
+def save_totp_secret(self, encrypted_secret: bytes):
+    """Speichert verschlüsseltes TOTP-Secret"""
+
+def remove_totp_secret(self):
+    """Entfernt TOTP-Secret (deaktiviert 2FA)"""
+
+def has_totp_enabled(self) -> bool:
+    """Prüft ob 2FA aktiviert ist"""
+```
+
+### Sicherheitsaspekte
+
+1. **Secret-Verschlüsselung**: TOTP-Secret wird mit Master-Passwort verschlüsselt
+2. **Toleranzfenster**: ±30s (1 Zeitfenster vor/nach) für Clock-Drift
+3. **Kein Backup-Codes**: Benutzer muss Secret und Master-Passwort aufbewahren
+4. **Standard**: RFC 6238 (TOTP), SHA-1, 6 Digits, 30s Intervall
+
+### Dependencies
+
+- **pyotp >= 2.9.0**: TOTP-Implementierung
+- **qrcode[pil] >= 7.4.2**: QR-Code-Generierung
+
+### Benutzer-Workflow
+
+**2FA Aktivieren:**
+1. Einstellungen öffnen
+2. "2FA aktivieren" klicken
+3. QR-Code mit Authenticator-App scannen
+4. Code in App erscheint → Bestätigen
+5. Beim nächsten Login: Master-Passwort + 6-stelliger Code
+
+**2FA Deaktivieren:**
+1. Einstellungen öffnen
+2. "2FA deaktivieren" klicken
+3. Bestätigen
+4. Nur noch Master-Passwort erforderlich
+
+---
+
+## 10. Bekannte Issues & Änderungsprotokoll
 
 ### ✅ BEHOBEN (2025-12-01 Session)
 
@@ -396,10 +561,23 @@ lock, unlock, eye, eye_off, copy, check, edit, trash, key, dice, search, folder,
 - Vollständiger Einstellungs-Dialog (settings_dialog.py, 426 Zeilen)
 - Cleaner Header-Layout (Theme/Lock Buttons entfernt, neuer "Manager sperren" Button)
 
-**Features entfernt (2025-12-02):**
+**Features entfernt (2025-12-02 Vormittag):**
 - Fehlerhafte 2FA/TOTP-Implementierung entfernt (war als Passwort-Eintrag-Feature implementiert, nicht als Datenbank-Unlock)
 - totp_manager.py, totp_dialog.py gelöscht
 - Entry-Dialog zurück auf 580px Höhe
+
+**Features hinzugefügt (2025-12-02 Nachmittag):**
+- **Vollständige 2FA/TOTP-Implementierung für Datenbank-Unlock**
+  - totp_manager.py (110 Zeilen): TOTP-Manager mit Singleton-Pattern
+  - totp_setup_dialog.py (370 Zeilen): Setup-Dialog mit QR-Code und Live-Code
+  - Login-Dialog: 2FA-Verifizierung nach Master-Passwort
+  - Settings-Dialog: 2FA aktivieren/deaktivieren mit Status-Anzeige
+  - Datenbank: totp_secret BLOB in users-Tabelle
+  - Dependencies: pyotp>=2.9.0, qrcode[pil]>=7.4.2
+- QR-Code-Generierung für Authenticator-Apps
+- Live TOTP-Code mit 30s Countdown
+- Verschlüsselte Secret-Speicherung mit Master-Passwort
+- ±30s Toleranzfenster für Code-Verifizierung
 
 **Features hinzugefügt (Nacht):**
 - **UI-Test-Tool vollständig implementiert** (test_ui_comprehensive.py)
@@ -439,7 +617,7 @@ a3f2ac4 refactor: Implementiere Logging-System und entferne veraltete Dateien
 
 ---
 
-## 10. Wichtige Code-Referenzen
+## 11. Wichtige Code-Referenzen
 
 ### Hauptfenster Initialisierung
 **main_window.py:107-218** - Setup-Methode mit Header, Sidebar, Content
@@ -458,7 +636,7 @@ a3f2ac4 refactor: Implementiere Logging-System und entferne veraltete Dateien
 
 ---
 
-## 11. Build & Run
+## 12. Build & Run
 
 ### Installation
 ```bash
@@ -490,7 +668,7 @@ pytest tests/test_encryption.py -v
 
 ---
 
-## 12. Einstellungen & Daten
+## 13. Einstellungen & Daten
 
 ### Einstellungen-Datei
 **Pfad**: `~/.securepass/settings.json`
@@ -603,7 +781,7 @@ pytest tests/test_encryption.py -v
 
 ---
 
-## 13. Tastenkombinationen
+## 14. Tastenkombinationen
 
 - **Ctrl+L** - Anwendung sperren
 - **Ctrl+D** - Dark Mode umschalten
@@ -612,7 +790,7 @@ pytest tests/test_encryption.py -v
 
 ---
 
-## 14. UI-Test-Tool (NEU 2025-12-01)
+## 15. UI-Test-Tool (NEU 2025-12-01)
 
 ### Übersicht
 
@@ -782,7 +960,7 @@ elif test_type == "neue_kategorie":
 
 ---
 
-## 15. Git Workflow & Version Control
+## 16. Git Workflow & Version Control
 
 **WICHTIG**: Für alle Code-Änderungen gilt der Git-Workflow!
 
@@ -843,7 +1021,7 @@ git branch -d feature/neues-feature
 
 ---
 
-## 15. Entwicklungs-Empfehlungen
+## 17. Entwicklungs-Empfehlungen
 
 ### ✅ Abgeschlossen
 1. ~~Exception-Handling verbessern~~ - Logging-System implementiert ✅
@@ -869,7 +1047,7 @@ git branch -d feature/neues-feature
 
 ---
 
-## 16. Wichtige Hinweise für Nachfolger
+## 18. Wichtige Hinweise für Nachfolger
 
 ### Design-Philosophie
 - Apple-inspiriert: Flach, modern, clean

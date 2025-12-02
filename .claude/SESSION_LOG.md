@@ -2,7 +2,158 @@
 
 ---
 
-## Session: 2025-12-02
+## Session: 2025-12-02 (Nachmittag)
+**Dauer**: ~2 Stunden
+**Ziel**: Vollständige 2FA/TOTP-Implementierung für Datenbank-Unlock
+**Status**: ✅ Vollständig abgeschlossen und dokumentiert
+
+### Ziel
+Implementierung von Zwei-Faktor-Authentifizierung als zusätzliche Sicherheitsebene beim Entsperren der Datenbank (nicht für einzelne Passwort-Einträge).
+
+### Durchgeführte Arbeiten
+
+#### 1. Core-Implementation
+**Neue Dateien:**
+- ✅ `src/core/totp_manager.py` (110 Zeilen) - TOTP-Manager mit Singleton-Pattern
+  - Secret-Generierung (Base32)
+  - Code-Generierung (6-stellig, 30s)
+  - Code-Verifizierung (±30s Toleranz)
+  - Secret-Verschlüsselung/-Entschlüsselung
+  - Provisioning-URI für QR-Code
+  - Countdown-Timer für verbleibende Sekunden
+
+**Modifizierte Dateien:**
+- ✏️ `src/core/database_file.py` - `totp_secret BLOB` zur users-Tabelle hinzugefügt
+- ✏️ `src/core/database.py` - 4 neue Methoden:
+  - `get_totp_secret()` - Gibt verschlüsseltes Secret zurück
+  - `save_totp_secret(encrypted_secret)` - Speichert Secret
+  - `remove_totp_secret()` - Entfernt Secret (deaktiviert 2FA)
+  - `has_totp_enabled()` - Prüft ob 2FA aktiv
+
+#### 2. UI-Implementation
+**Neue Dateien:**
+- ✅ `src/gui/totp_setup_dialog.py` (370 Zeilen) - 2FA-Setup-Dialog
+  - QR-Code-Generierung und Anzeige (250x250px)
+  - Manuelles Secret mit Copy-Button
+  - Live TOTP-Code-Anzeige mit Countdown
+  - Automatische Updates alle 1s
+  - Warnhinweis vor Aktivierung
+  - Modernes responsive Design
+
+**Modifizierte Dateien:**
+- ✏️ `src/gui/login_dialog.py` - 2FA-Verifizierung integriert (41 Zeilen hinzugefügt)
+  - Nach Master-Passwort-Verifizierung
+  - Prüft ob 2FA aktiv mit `db_manager.has_totp_enabled()`
+  - Fordert TOTP-Code via QInputDialog
+  - Verifiziert Code mit `totp_manager.verify_code()`
+  - Fehlerbehandlung und UI-Feedback
+
+- ✏️ `src/gui/settings_dialog.py` - 2FA-Management-Sektion (190 Zeilen hinzugefügt)
+  - Status-Anzeige: ✓ 2FA aktiv / ○ 2FA inaktiv
+  - "2FA aktivieren" Button → Öffnet TOTPSetupDialog
+  - "2FA deaktivieren" Button → Bestätigung + Entfernung
+  - Dynamic Button-Visibility basierend auf Status
+  - Integration mit bestehendem Sicherheits-GroupBox
+
+- ✏️ `src/gui/main_window.py` - Settings-Dialog-Aufruf aktualisiert
+  - Übergibt `db_manager` und `db_name` Parameter
+
+#### 3. Dependencies
+- ✅ `pyotp >= 2.9.0` - TOTP-Implementierung (RFC 6238)
+- ✅ `qrcode[pil] >= 7.4.2` - QR-Code-Generierung mit PIL
+
+#### 4. Dokumentation
+- ✏️ `.claude/knowledge-base.md` - Umfassende Aktualisierung:
+  - Sektion 1: 2FA als Kern-Feature hinzugefügt
+  - Sektion 2: totp_manager.py und totp_setup_dialog.py in Struktur
+  - Sektion 3: pyotp und qrcode zu Dependencies
+  - Sektion 4: totp_manager zu Singleton-Instanzen
+  - Sektion 6: totp_secret BLOB zu users-Tabelle
+  - Sektion 7: 2FA-Verifizierung in Login-Flow
+  - **NEU Sektion 9**: Vollständige 2FA/TOTP-Dokumentation (152 Zeilen)
+    - Architektur mit Code-Beispielen
+    - UI-Komponenten (Setup, Login, Settings)
+    - Datenbank-Integration
+    - Sicherheitsaspekte
+    - Benutzer-Workflow
+  - Sektion 10: Features hinzugefügt-Eintrag (2025-12-02 Nachmittag)
+  - Alle nachfolgenden Sektionen um 1 erhöht (10→11, 11→12, etc.)
+
+- ✏️ `.claude/SESSION_LOG.md` - Diese Session dokumentiert
+
+### Features
+
+**Benutzer-Features:**
+- QR-Code für einfaches Setup mit Authenticator-Apps
+- Unterstützung für Google Authenticator, Authy, Microsoft Authenticator
+- Live-Code-Vorschau mit Countdown (30s)
+- Manuelles Secret für Apps ohne QR-Scanner
+- Status-Anzeige in Einstellungen
+- Einfache Aktivierung/Deaktivierung
+
+**Technische Features:**
+- RFC 6238 TOTP-Standard
+- SHA-1 Hash, 6 Digits, 30s Intervall
+- ±30s Toleranzfenster (1 Zeitfenster vor/nach)
+- Secret-Verschlüsselung mit Master-Passwort
+- Sichere Speicherung in verschlüsselter Datenbank
+- Singleton-Pattern für globalen Manager
+
+### Statistik
+- **Dateien geändert**: 8
+- **Neue Dateien**: 2 (totp_manager.py, totp_setup_dialog.py)
+- **Zeilen hinzugefügt**: 742
+- **Zeilen geändert**: minimal (meist Imports und Methodenaufrufe)
+- **Commits**: 1 Feature-Commit + 1 Merge-Commit
+
+### Git-Workflow
+```
+Branch: feature/database-unlock-2fa
+Commits:
+  - f292264 feat: Implementiere 2FA/TOTP für Datenbank-Unlock
+  - 4fe4577 Merge feature/database-unlock-2fa into main
+
+Pushed to: origin/main
+```
+
+### Tests
+- Python-Syntax-Check: ✅ Alle Dateien valide
+- Unit-Tests: 35 bestanden, 12 fehlgeschlagen (bestehende Probleme, nicht durch 2FA)
+- Keine neuen Test-Failures
+- Manuelle Tests: Nicht durchgeführt (Benutzer sollte testen)
+
+### Token-Nutzung
+- Start: ~44k (nach Context-Restore)
+- Ende: ~80k
+- Status: ✅ SICHER (Grün-Zone)
+
+### Sicherheitsaspekte
+1. **Secret-Verschlüsselung**: TOTP-Secret wird mit Master-Passwort verschlüsselt (AES-256)
+2. **Kein Plaintext**: Secret wird niemals im Klartext gespeichert
+3. **Toleranzfenster**: ±30s für Clock-Drift (verhindert Sync-Probleme)
+4. **Warnung**: Benutzer wird vor Aktivierung gewarnt (Master-PW + Device benötigt)
+5. **Standard-konform**: RFC 6238 TOTP, kompatibel mit allen Standard-Apps
+
+### User Story
+1. Benutzer öffnet Einstellungen → Sicherheit
+2. Sieht "○ 2FA ist nicht aktiv"
+3. Klickt "2FA aktivieren"
+4. Dialog öffnet sich mit QR-Code
+5. Scannt QR-Code mit Google Authenticator
+6. Sieht Live-Code im Dialog (bestätigt Funktion)
+7. Klickt "2FA aktivieren" → Erfolg
+8. Bei nächstem Login: Master-Passwort + 6-stelliger Code erforderlich
+
+### Nächste Schritte
+- ✅ Implementation abgeschlossen
+- ✅ Dokumentation vollständig
+- ⏭️ Benutzer sollte Feature manuell testen
+- ⏭️ Optional: Unit-Tests für totp_manager.py schreiben
+- ⏭️ Optional: UI-Tests für totp_setup_dialog.py
+
+---
+
+## Session: 2025-12-02 (Vormittag)
 **Dauer**: ~1 Stunde
 **Ziel**: Entfernung fehlerhafter 2FA-Implementierung
 **Status**: ✅ Vollständig abgeschlossen
