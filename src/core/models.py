@@ -29,7 +29,6 @@ class PasswordEntry:
     encrypted_password: bytes
     encrypted_notes: Optional[bytes] = None
     website_url: Optional[str] = None
-    totp_secret: Optional[bytes] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

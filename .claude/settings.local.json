@@ -9,7 +9,10 @@
       "Bash(git push:*)",
       "Bash(git restore:*)",
       "Bash(find:*)",
-      "Bash(rm \"src/core/database_old.py\" \"src/gui/login_dialog_old.py\" nul)"
+      "Bash(rm \"src/core/database_old.py\" \"src/gui/login_dialog_old.py\" nul)",
+      "Bash(git checkout:*)",
+      "Bash(rm:*)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []

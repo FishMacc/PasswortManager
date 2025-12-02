@@ -5,7 +5,6 @@ Ermöglicht Konfiguration von:
 - Theme (Dark/Light Mode)
 - Auto-Lock Timeout
 - Zwischenablage Timeout
-- 2FA/TOTP Einstellungen (zukünftig)
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -194,86 +193,6 @@ class SettingsDialog(QDialog):
 
         security_group.setLayout(security_layout)
         content_layout.addWidget(security_group)
-
-        # === 2FA / TOTP ===
-        totp_group = self.create_group_box("🔐 Zwei-Faktor-Authentifizierung")
-        totp_layout = QVBoxLayout()
-        totp_layout.setSpacing(16)
-
-        # Info-Text mit Warnung
-        info_container = QFrame()
-        info_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {c['background_tertiary']};
-                border: 2px solid {c['surface_border']};
-                border-radius: 10px;
-                padding: 12px;
-            }}
-        """)
-        info_inner_layout = QVBoxLayout(info_container)
-        info_inner_layout.setSpacing(8)
-
-        # Titel mit Icon
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(8)
-
-        self.info_icon_label = QLabel("ℹ️")
-        self.info_icon_label.setStyleSheet("font-size: 18px; background: transparent; border: none;")
-        title_layout.addWidget(self.info_icon_label)
-
-        self.totp_title_label = QLabel("In Entwicklung")
-        self.totp_title_label.setStyleSheet(f"""
-            color: {c['text_primary']};
-            font-size: 14px;
-            font-weight: bold;
-            background: transparent;
-            border: none;
-        """)
-        title_layout.addWidget(self.totp_title_label)
-        title_layout.addStretch()
-        info_inner_layout.addLayout(title_layout)
-
-        # Beschreibung
-        self.totp_info_label = QLabel(
-            "2FA/TOTP-Unterstützung ermöglicht das Speichern von Authenticator-Codes "
-            "(z.B. Google Authenticator, Authy).\n\n"
-            "Diese Funktion ist in Planung und wird in einer zukünftigen Version verfügbar sein. "
-            "Die notwendige pyotp-Bibliothek ist bereits installiert."
-        )
-        self.totp_info_label.setWordWrap(True)
-        self.totp_info_label.setStyleSheet(f"""
-            color: {c['text_secondary']};
-            font-size: 13px;
-            background: transparent;
-            border: none;
-        """)
-        info_inner_layout.addWidget(self.totp_info_label)
-
-        totp_layout.addWidget(info_container)
-
-        # 2FA Info: Hinweis dass Feature im Entry-Dialog verfügbar ist
-        self.totp_button = QPushButton("✅ 2FA verfügbar im Passwort-Dialog")
-        self.totp_button.setMinimumHeight(44)
-        self.totp_button.setEnabled(False)  # Info-Button, nicht klickbar
-        self.totp_button.setToolTip("2FA kann beim Bearbeiten von Passwort-Einträgen aktiviert werden")
-        self.totp_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #10b981;
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 0 20px;
-            }}
-            QPushButton:disabled {{
-                opacity: 0.8;
-            }}
-        """)
-        totp_layout.addWidget(self.totp_button)
-
-        totp_group.setLayout(totp_layout)
-        content_layout.addWidget(totp_group)
 
         content_layout.addStretch()
 
@@ -551,53 +470,6 @@ class SettingsDialog(QDialog):
                 # Beschreibungen und Info-Texte
                 font_size = '12px' if 'font-size: 12px' in current_style else '13px'
                 label.setStyleSheet(f"color: {c['text_secondary']}; font-size: {font_size}; background: transparent; border: none;")
-
-        # Update Info-Container (2FA-Bereich)
-        for frame in self.findChildren(QFrame):
-            if 'border-radius: 10px' in frame.styleSheet() and 'padding: 12px' in frame.styleSheet():
-                frame.setStyleSheet(f"""
-                    QFrame {{
-                        background-color: {c['background_tertiary']};
-                        border: 2px solid {c['surface_border']};
-                        border-radius: 10px;
-                        padding: 12px;
-                    }}
-                """)
-
-        # Update 2FA Info Labels
-        if hasattr(self, 'totp_title_label'):
-            self.totp_title_label.setStyleSheet(f"""
-                color: {c['text_primary']};
-                font-size: 14px;
-                font-weight: bold;
-                background: transparent;
-                border: none;
-            """)
-
-        if hasattr(self, 'totp_info_label'):
-            self.totp_info_label.setStyleSheet(f"""
-                color: {c['text_secondary']};
-                font-size: 13px;
-                background: transparent;
-                border: none;
-            """)
-
-        # Update 2FA Button
-        if hasattr(self, 'totp_button'):
-            self.totp_button.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {c['background_tertiary']};
-                    color: {c['text_secondary']};
-                    border: 2px solid {c['surface_border']};
-                    border-radius: 10px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    padding: 0 20px;
-                }}
-                QPushButton:disabled {{
-                    opacity: 0.6;
-                }}
-            """)
 
         # Update Footer
         for frame in self.findChildren(QFrame):
