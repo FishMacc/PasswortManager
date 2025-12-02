@@ -1,6 +1,69 @@
 # Session Log - Claude Wissensbasis
 
-**Session**: 2025-12-01
+---
+
+## Session: 2025-12-02
+**Dauer**: ~1 Stunde
+**Ziel**: Entfernung fehlerhafter 2FA-Implementierung
+**Status**: ✅ Vollständig abgeschlossen
+
+### Problem
+2FA/TOTP wurde fälschlicherweise als Feature für einzelne Passwort-Einträge implementiert (wie ein TOTP-Code-Speicher). Korrekt wäre 2FA als zusätzliche Sicherheitsschicht beim Entsperren der Datenbank selbst.
+
+### Durchgeführte Arbeiten
+
+#### 1. Code-Entfernung
+- ❌ `src/core/totp_manager.py` (110 Zeilen) - TOTP-Backend gelöscht
+- ❌ `src/gui/totp_dialog.py` (427 Zeilen) - QR-Code Dialog gelöscht
+- ✏️ `src/gui/entry_dialog.py` - 2FA-UI-Bereich entfernt, Dialog-Höhe 720px → 580px
+- ✏️ `src/gui/settings_dialog.py` - 2FA-Sektion aus Einstellungen entfernt
+- ✏️ `src/core/models.py` - `totp_secret` Feld aus PasswordEntry entfernt
+- ✏️ `src/core/database.py` - TOTP CRUD-Operationen entfernt
+- ✏️ `src/core/database_file.py` - `totp_secret` Spalte aus Schema entfernt
+
+#### 2. Dependencies bereinigt
+- ❌ `pyotp >= 2.9.0` entfernt
+- ❌ `qrcode[pil] >= 7.4.2` entfernt
+
+#### 3. Dokumentation aktualisiert
+- ✏️ `.claude/knowledge-base.md` - Kompletter Abschnitt 9 "2FA/TOTP-System" (~160 Zeilen) entfernt
+- Alle 2FA-Referenzen aus Features, Tech-Stack, Commits, Singletons entfernt
+- Status aktualisiert auf 2025-12-02
+- "2FA für Datenbank-Unlock" als zukünftiges Feature notiert
+
+### Statistik
+- **Dateien geändert**: 10
+- **Zeilen entfernt**: 1135
+- **Zeilen hinzugefügt**: 35
+- **Commits**: 2 (Code + Dokumentation)
+
+### Git-Workflow
+```
+Branch: refactor/remove-incorrect-2fa-implementation
+Commits:
+  - dfe4868 refactor: Entferne fehlerhafte 2FA-Implementierung
+  - 7274226 docs: Entferne 2FA-Referenzen aus Wissensdatenbank
+  - 3139d18 Merge branch 'refactor/remove-incorrect-2fa-implementation'
+
+Pushed to: origin/main
+```
+
+### Tests
+- Unit-Tests ausgeführt: 35 bestanden, 12 fehlgeschlagen (bestehende Probleme, nicht durch 2FA-Entfernung)
+- Keine neuen Test-Failures
+
+### Token-Nutzung
+- Start: ~40k
+- Ende: ~106k
+- Status: ✅ SICHER (Grün-Zone)
+
+### Nächste Schritte
+- 2FA korrekt als Datenbank-Unlock-Feature neu implementieren (optional, zukünftig)
+- Optional: Unit-Test-Failures beheben (bestehende Probleme aus vorheriger Session)
+
+---
+
+## Session: 2025-12-01
 **Dauer**: Initiale Projektanalyse
 **Ziel**: Wissensdatenbank für kontinuierlichen Wissenstransfer erstellen
 
