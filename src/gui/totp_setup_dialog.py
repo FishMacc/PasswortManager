@@ -30,6 +30,7 @@ class TOTPSetupDialog(QDialog):
         self.database_name = database_name
         self.totp_secret = totp_manager.generate_secret()
         self.totp_update_timer = None
+        self.qr_code_pixmap = None
         self.setup_ui()
 
         # Starte Live-Code-Updates
@@ -39,13 +40,13 @@ class TOTPSetupDialog(QDialog):
         """Erstellt das UI"""
         self.setWindowTitle("2FA einrichten")
         self.setModal(True)
-        self.setMinimumSize(550, 700)
-        self.resize(550, 700)
+        self.setMinimumSize(600, 780)
+        self.resize(600, 780)
 
         # Zentriere auf Bildschirm
         screen_info = responsive.get_screen_info()
-        x = (screen_info['screen_width'] - 550) // 2
-        y = (screen_info['screen_height'] - 700) // 2
+        x = (screen_info['screen_width'] - 600) // 2
+        y = (screen_info['screen_height'] - 780) // 2
         self.move(x, y)
 
         fonts = responsive.get_font_sizes()
@@ -111,9 +112,36 @@ class TOTPSetupDialog(QDialog):
         # QR-Code-Anzeige
         self.qr_code_label = QLabel()
         self.qr_code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.qr_code_label.setMinimumSize(250, 250)
+        self.qr_code_label.setMinimumSize(300, 300)
         self.qr_code_label.setStyleSheet(f"background-color: white; border: 2px solid {c['surface_border']}; border-radius: 8px;")
         qr_layout.addWidget(self.qr_code_label)
+
+        # Button zum Vergrößern des QR-Codes
+        enlarge_button_layout = QHBoxLayout()
+        enlarge_button_layout.addStretch()
+
+        enlarge_qr_button = QPushButton("🔍 QR-Code vergrößern")
+        enlarge_qr_button.setMinimumHeight(36)
+        enlarge_qr_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        enlarge_qr_button.clicked.connect(self.show_enlarged_qr)
+        enlarge_qr_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['background_tertiary']};
+                color: {c['text_primary']};
+                border: 2px solid {c['surface_border']};
+                border-radius: 8px;
+                padding: 6px 16px;
+                font-size: {fonts['body']-1}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {c['surface_hover']};
+                border-color: {c['primary']};
+            }}
+        """)
+        enlarge_button_layout.addWidget(enlarge_qr_button)
+        enlarge_button_layout.addStretch()
+        qr_layout.addLayout(enlarge_button_layout)
 
         self.generate_qr_code()
 
@@ -303,7 +331,9 @@ class TOTPSetupDialog(QDialog):
 
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.read())
-            scaled_pixmap = pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio)
+            # Speichere Original-Pixmap für vergrößerte Ansicht
+            self.qr_code_pixmap = pixmap
+            scaled_pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio)
             self.qr_code_label.setPixmap(scaled_pixmap)
 
         except ImportError:
@@ -313,6 +343,79 @@ class TOTPSetupDialog(QDialog):
             logger.error(f"Fehler beim Generieren des QR-Codes: {e}")
             self.qr_code_label.setText(f"Fehler beim Generieren\ndes QR-Codes")
             self.qr_code_label.setStyleSheet(f"color: {theme.get_colors()['danger']}; font-size: 12px;")
+
+    def show_enlarged_qr(self):
+        """Zeigt QR-Code in vergrößerter Ansicht"""
+        if not self.qr_code_pixmap:
+            return
+
+        # Erstelle Dialog
+        enlarged_dialog = QDialog(self)
+        enlarged_dialog.setWindowTitle("QR-Code - Vergrößerte Ansicht")
+        enlarged_dialog.setModal(True)
+
+        # Layout
+        layout = QVBoxLayout(enlarged_dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Info-Label
+        c = theme.get_colors()
+        fonts = responsive.get_font_sizes()
+        info = QLabel("Scanne diesen QR-Code mit deiner Authenticator-App")
+        info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info.setStyleSheet(f"color: {c['text_secondary']}; font-size: {fonts['body']}px;")
+        layout.addWidget(info)
+
+        # Großer QR-Code
+        qr_label = QLabel()
+        qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Skaliere auf 500x500 (sehr groß)
+        large_pixmap = self.qr_code_pixmap.scaled(
+            500, 500,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        qr_label.setPixmap(large_pixmap)
+        qr_label.setStyleSheet(f"""
+            background-color: white;
+            border: 2px solid {c['surface_border']};
+            border-radius: 12px;
+            padding: 20px;
+        """)
+        layout.addWidget(qr_label)
+
+        # Schließen-Button
+        close_button = QPushButton("Schließen")
+        close_button.setMinimumHeight(44)
+        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_button.clicked.connect(enlarged_dialog.accept)
+        close_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['primary']};
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: {fonts['button']}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {c['primary_hover']};
+            }}
+        """)
+        layout.addWidget(close_button)
+
+        # Größe und Zentrieren
+        enlarged_dialog.setMinimumSize(600, 700)
+        enlarged_dialog.resize(600, 700)
+
+        screen_info = responsive.get_screen_info()
+        x = (screen_info['screen_width'] - 600) // 2
+        y = (screen_info['screen_height'] - 700) // 2
+        enlarged_dialog.move(x, y)
+
+        enlarged_dialog.exec()
 
     def start_totp_updates(self):
         """Startet Live-Code-Updates"""
