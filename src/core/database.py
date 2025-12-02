@@ -99,6 +99,35 @@ class DatabaseManager:
         # Speichere auch in verschlüsselte Datei
         self.save_changes()
 
+    def get_totp_secret(self) -> Optional[bytes]:
+        """Gibt das verschlüsselte TOTP-Secret zurück"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT totp_secret FROM users LIMIT 1")
+        result = cursor.fetchone()
+        return result['totp_secret'] if result else None
+
+    def save_totp_secret(self, encrypted_secret: bytes):
+        """Speichert das verschlüsselte TOTP-Secret"""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "UPDATE users SET totp_secret = ? WHERE id = 1",
+            (encrypted_secret,)
+        )
+        self.conn.commit()
+        self.save_changes()
+
+    def remove_totp_secret(self):
+        """Entfernt das TOTP-Secret (deaktiviert 2FA)"""
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE users SET totp_secret = NULL WHERE id = 1")
+        self.conn.commit()
+        self.save_changes()
+
+    def has_totp_enabled(self) -> bool:
+        """Prüft ob 2FA aktiviert ist"""
+        secret = self.get_totp_secret()
+        return secret is not None and len(secret) > 0
+
     # ==================== CATEGORY MANAGEMENT ====================
 
     def get_all_categories(self) -> List[Category]:
