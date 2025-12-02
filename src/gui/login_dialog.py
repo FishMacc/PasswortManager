@@ -3,13 +3,14 @@ Login-Dialog für Master-Passwort (für bestehende Datenbanken)
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QFrame
+    QPushButton, QMessageBox, QFrame, QInputDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
 from ..auth.master_password import master_password_manager
 from ..core.database import DatabaseManager
 from ..core.encryption import encryption_manager
+from ..core.totp_manager import totp_manager
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
@@ -198,8 +199,42 @@ class LoginDialog(QDialog):
                     db_manager.close()
                     raise ValueError("Falsches Passwort")
 
-            # Schließe temporäre Verbindung
-            db_manager.close()
+            # Prüfe ob 2FA aktiviert ist
+            if db_manager.has_totp_enabled():
+                encrypted_secret = db_manager.get_totp_secret()
+                if encrypted_secret:
+                    # Entschlüssle Secret
+                    totp_secret = totp_manager.decrypt_secret(encrypted_secret)
+
+                    # Schließe temporäre Verbindung vor Dialog
+                    db_manager.close()
+
+                    # Fordere TOTP-Code vom Benutzer
+                    totp_code, ok = QInputDialog.getText(
+                        self,
+                        "Zwei-Faktor-Authentifizierung",
+                        "Gib den 6-stelligen Code aus deiner\nAuthenticator-App ein:",
+                        QLineEdit.EchoMode.Normal
+                    )
+
+                    if not ok or not totp_code:
+                        # Benutzer hat abgebrochen
+                        return
+
+                    # Verifiziere TOTP-Code
+                    if not totp_manager.verify_code(totp_secret, totp_code.strip()):
+                        QMessageBox.warning(
+                            self,
+                            "Fehler",
+                            "Ungültiger 2FA-Code. Bitte versuche es erneut."
+                        )
+                        self.password_input.clear()
+                        return
+
+                    # 2FA erfolgreich
+            else:
+                # Kein 2FA - schließe Verbindung
+                db_manager.close()
 
             # Setze Encryption Manager
             encryption_manager.set_master_password(password)

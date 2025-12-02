@@ -84,11 +84,12 @@ class DatabaseFile:
         """Erstellt das Datenbank-Schema"""
         cursor = conn.cursor()
 
-        # Users Tabelle (für Master-Passwort Hash)
+        # Users Tabelle (für Master-Passwort Hash und 2FA)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
                 password_hash TEXT NOT NULL,
+                totp_secret BLOB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)

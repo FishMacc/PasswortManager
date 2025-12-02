@@ -5,17 +5,21 @@ Ermöglicht Konfiguration von:
 - Theme (Dark/Light Mode)
 - Auto-Lock Timeout
 - Zwischenablage Timeout
+- 2FA/TOTP für Datenbank-Unlock
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QSpinBox, QFrame, QScrollArea, QWidget, QGroupBox
+    QComboBox, QSpinBox, QFrame, QScrollArea, QWidget, QGroupBox,
+    QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from ..core.settings import app_settings
+from ..core.totp_manager import totp_manager
 from .themes import theme
 from .icons import icon_provider
 from .animations import animator
+from .totp_setup_dialog import TOTPSetupDialog
 
 
 class SettingsDialog(QDialog):
@@ -24,8 +28,10 @@ class SettingsDialog(QDialog):
     # Signal wenn Einstellungen geändert wurden
     settings_changed = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, db_manager=None, db_name: str = "", parent=None):
         super().__init__(parent)
+        self.db_manager = db_manager
+        self.db_name = db_name
         self.setup_ui()
         self.load_settings()
 
@@ -191,6 +197,80 @@ class SettingsDialog(QDialog):
         clipboard_row.addWidget(self.clipboard_spin)
         security_layout.addLayout(clipboard_row)
 
+        # 2FA / TOTP
+        if self.db_manager:
+            totp_row = self.create_setting_row(
+                "Zwei-Faktor-Authentifizierung (2FA)",
+                "Schütze deine Datenbank mit einem zusätzlichen TOTP-Code"
+            )
+
+            # Status + Button Container
+            totp_controls = QVBoxLayout()
+            totp_controls.setSpacing(8)
+
+            # Status Label
+            self.totp_status_label = QLabel()
+            self.totp_status_label.setStyleSheet(f"""
+                color: {c['text_secondary']};
+                font-size: 13px;
+                background: transparent;
+                border: none;
+            """)
+            totp_controls.addWidget(self.totp_status_label)
+
+            # Button Container
+            totp_button_layout = QHBoxLayout()
+            totp_button_layout.setSpacing(8)
+
+            # Enable 2FA Button
+            self.enable_totp_button = QPushButton("2FA aktivieren")
+            self.enable_totp_button.setMinimumHeight(40)
+            self.enable_totp_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.enable_totp_button.clicked.connect(self.enable_2fa)
+            self.enable_totp_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-size: 13px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['primary_hover']};
+                }}
+            """)
+            totp_button_layout.addWidget(self.enable_totp_button)
+
+            # Disable 2FA Button
+            self.disable_totp_button = QPushButton("2FA deaktivieren")
+            self.disable_totp_button.setMinimumHeight(40)
+            self.disable_totp_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.disable_totp_button.clicked.connect(self.disable_2fa)
+            self.disable_totp_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['danger']};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-size: 13px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['danger_hover']};
+                }}
+            """)
+            totp_button_layout.addWidget(self.disable_totp_button)
+
+            totp_button_layout.addStretch()
+
+            totp_controls.addLayout(totp_button_layout)
+
+            totp_row.addLayout(totp_controls)
+            security_layout.addLayout(totp_row)
+
         security_group.setLayout(security_layout)
         content_layout.addWidget(security_group)
 
@@ -332,6 +412,10 @@ class SettingsDialog(QDialog):
         clipboard_clear = app_settings.get("clipboard_clear_seconds", 30)
         self.clipboard_spin.setValue(clipboard_clear)
 
+        # 2FA Status
+        if self.db_manager:
+            self.update_2fa_status()
+
     def save_settings(self):
         """Speichert Einstellungen"""
         # Theme Mode
@@ -349,6 +433,108 @@ class SettingsDialog(QDialog):
         self.settings_changed.emit()
 
         self.accept()
+
+    def update_2fa_status(self):
+        """Aktualisiert 2FA-Status-Anzeige"""
+        if not self.db_manager:
+            return
+
+        is_enabled = self.db_manager.has_totp_enabled()
+
+        if is_enabled:
+            self.totp_status_label.setText("✓ 2FA ist aktiv")
+            c = theme.get_colors()
+            self.totp_status_label.setStyleSheet(f"""
+                color: {c['success']};
+                font-size: 13px;
+                font-weight: 600;
+                background: transparent;
+                border: none;
+            """)
+            self.enable_totp_button.setVisible(False)
+            self.disable_totp_button.setVisible(True)
+        else:
+            self.totp_status_label.setText("○ 2FA ist nicht aktiv")
+            c = theme.get_colors()
+            self.totp_status_label.setStyleSheet(f"""
+                color: {c['text_secondary']};
+                font-size: 13px;
+                background: transparent;
+                border: none;
+            """)
+            self.enable_totp_button.setVisible(True)
+            self.disable_totp_button.setVisible(False)
+
+    def enable_2fa(self):
+        """Öffnet Dialog zum Aktivieren von 2FA"""
+        if not self.db_manager:
+            return
+
+        # Öffne TOTP-Setup-Dialog
+        dialog = TOTPSetupDialog(self.db_name, self)
+        dialog.totp_configured.connect(self.on_2fa_configured)
+        dialog.exec()
+
+    def on_2fa_configured(self, totp_secret: str):
+        """Wird aufgerufen wenn 2FA erfolgreich konfiguriert wurde"""
+        try:
+            # Verschlüssele und speichere TOTP-Secret
+            encrypted_secret = totp_manager.encrypt_secret(totp_secret)
+            self.db_manager.save_totp_secret(encrypted_secret)
+
+            QMessageBox.information(
+                self,
+                "2FA aktiviert",
+                "Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!\n\n"
+                "Ab jetzt benötigst du beim Entsperren der Datenbank einen "
+                "Code aus deiner Authenticator-App."
+            )
+
+            # Aktualisiere Status
+            self.update_2fa_status()
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Fehler",
+                f"Fehler beim Aktivieren von 2FA:\n{str(e)}"
+            )
+
+    def disable_2fa(self):
+        """Deaktiviert 2FA nach Bestätigung"""
+        if not self.db_manager:
+            return
+
+        # Bestätigung
+        reply = QMessageBox.question(
+            self,
+            "2FA deaktivieren",
+            "Möchtest du die Zwei-Faktor-Authentifizierung wirklich deaktivieren?\n\n"
+            "Nach der Deaktivierung wird nur noch dein Master-Passwort "
+            "zum Entsperren der Datenbank benötigt.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                self.db_manager.remove_totp_secret()
+
+                QMessageBox.information(
+                    self,
+                    "2FA deaktiviert",
+                    "Zwei-Faktor-Authentifizierung wurde deaktiviert."
+                )
+
+                # Aktualisiere Status
+                self.update_2fa_status()
+
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Fehler",
+                    f"Fehler beim Deaktivieren von 2FA:\n{str(e)}"
+                )
 
     def refresh_theme(self):
         """Aktualisiert alle Farben basierend auf dem aktuellen Theme"""

@@ -678,7 +678,9 @@ class MainWindow(QMainWindow):
 
     def open_settings(self):
         """Öffnet den Einstellungs-Dialog"""
-        dialog = SettingsDialog(self)
+        from pathlib import Path
+        db_name = Path(self.db_manager.encrypted_db_path).stem
+        dialog = SettingsDialog(self.db_manager, db_name, self)
         dialog.settings_changed.connect(self.on_settings_changed)
         dialog.exec()
 
