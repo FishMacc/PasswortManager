@@ -258,16 +258,15 @@ class DatabaseManager:
 
         cursor.execute("""
             INSERT INTO password_entries
-            (category_id, name, username, encrypted_password, encrypted_notes, website_url, totp_secret)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (category_id, name, username, encrypted_password, encrypted_notes, website_url)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             entry.category_id,
             entry.name,
             entry.username,
             entry.encrypted_password,
             entry.encrypted_notes,
-            entry.website_url,
-            entry.totp_secret
+            entry.website_url
         ))
 
         self.conn.commit()
@@ -282,7 +281,7 @@ class DatabaseManager:
             UPDATE password_entries
             SET category_id = ?, name = ?, username = ?,
                 encrypted_password = ?, encrypted_notes = ?, website_url = ?,
-                totp_secret = ?, updated_at = CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (
             entry.category_id,
@@ -291,7 +290,6 @@ class DatabaseManager:
             entry.encrypted_password,
             entry.encrypted_notes,
             entry.website_url,
-            entry.totp_secret,
             entry.id
         ))
 
@@ -315,7 +313,6 @@ class DatabaseManager:
             encrypted_password=row['encrypted_password'],
             encrypted_notes=row['encrypted_notes'],
             website_url=row['website_url'],
-            totp_secret=row['totp_secret'],
             created_at=row['created_at'],
             updated_at=row['updated_at']
         )
