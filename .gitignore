@@ -38,3 +38,15 @@ data/*.db-journal
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Environment & secrets
+.env
+.env.*
+*.local
+
+# Claude / AI assistant
+.claude/
+
+# pytest cache
+.pytest_cache/
+

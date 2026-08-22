@@ -1,243 +1,44 @@
 # SecurePass Manager
 
-Ein sicherer Passwort-Manager mit Master-Passwort und modernnem PyQt6-Interface.
+Ein lokal betriebener Passwort-Manager mit Master-Passwort-Schutz, moderner PyQt6-Oberfläche und verschlüsselter SQLite-Datenbank. Entwickelt zu Bildungszwecken.
 
 ## Features
 
-### ✨ Neues in Version 1.1
+- **Verschlüsselte Datenbank** – Alle Einträge und Notizen werden mit AES-256 gesichert; die Datenbankdatei (`.spdb`) ist cloud-sync-fähig.
+- **Sicheres Master-Passwort** – Argon2id-Hashing mit Zeit-/Speicher-/Parallelitätsparametern.
+- **TOTP/2FA-Unterstützung** – Einmalpasswörter für Dienste, die TOTP unterstützen.
+- **Passwort-Generator** – Konfigurierbare Länge und Zeichensätze mit Echtzeit-Stärkeanzeige.
+- **Kategorien & Suche** – Organisation in Gruppen und schnelle Volltextsuche.
+- **Auto-Lock & Zwischenablage-Schutz** – Automatische Sperre nach Inaktivität und Löschung kopierter Passwörter nach 30 Sekunden.
+- **Dark & Light Mode** – Sofortiger Themenwechsel über die Einstellungen.
 
-**Verschlüsselte Datenbank-Dateien (wie KeePass):**
-- **Einzelne .spdb Datei** - Gesamte Datenbank in einer verschlüsselten Datei
-- **Cloud-Sync fähig** - Einfach mit Dropbox, Google Drive, etc. synchronisieren
-- **Frei wählbarer Speicherort** - Speichere Datenbank wo du willst
-- **Mehrere Datenbanken** - Erstelle verschiedene Datenbanken (Privat, Arbeit, etc.)
-- **Kürzlich verwendet** - Schneller Zugriff auf letzte Datenbanken
-- **Vollständige AES-256 Verschlüsselung** der gesamten Datenbank-Datei
+## Voraussetzungen
 
-**Modernes Design:**
-- **Apple-Stil UI** mit flüssigen Animationen und Übergängen
-- **SVG-Icons** für gestochen scharfe Darstellung auf allen Displays
-- **Responsive Design** optimiert für alle Bildschirmgrößen
-- **Smooth Animationen** (Fade, Slide, Scale, Pulse) für bessere UX
-- **Dark & Light Mode** mit sofortigem Themenwechsel
-- **Verbesserte Bedienbarkeit** durch moderne, intuitive Oberfläche
-
-### Sicherheit
-- **AES-256 Verschlüsselung** für alle Passwörter und Notizen
-- **Argon2id Hashing** für das Master-Passwort
-- **Auto-Lock** nach 5 Minuten Inaktivität
-- **Sichere Zwischenablage** mit automatischer Löschung nach 30 Sekunden
-- Keine Plaintext-Speicherung von sensiblen Daten
-
-### Funktionen
-- **Master-Passwort System**
-  - Beim ersten Start: Master-Passwort erstellen
-  - Login mit Master-Passwort bei jedem Start
-  - Alle Daten werden mit dem Master-Passwort verschlüsselt
-
-- **Kategorien-System**
-  - Standard-Kategorien: Allgemein, Banking, Social Media, E-Mail
-  - Eigene Kategorien erstellen und verwalten
-  - Farbliche Kennzeichnung
-
-- **Passwort-Verwaltung**
-  - Passwörter sicher speichern mit Name, Username, Passwort, URL und Notizen
-  - Passwörter anzeigen/verstecken
-  - Passwörter in Zwischenablage kopieren
-  - Suche über alle Einträge
-
-- **Passwort-Generator**
-  - Einstellbare Länge (8-64 Zeichen)
-  - Konfigurierbare Zeichensätze (Groß-/Kleinbuchstaben, Zahlen, Sonderzeichen)
-  - Echtzeit-Stärkeanzeige
-  - Direktes Übernehmen in Einträge
+- Python 3.8 oder höher
+- `pip`
 
 ## Installation
 
-### Voraussetzungen
-- Python 3.8 oder höher
-- pip (Python Package Manager)
+```bash
+git clone https://github.com/FishMacc/PasswortManager.git
+cd PasswortManager
+pip install -r requirements.txt
+```
 
-### Schritte
+## Start
 
-1. **Repository klonen oder Dateien herunterladen**
-   ```bash
-   cd PasswortManager
-   ```
-
-2. **Abhängigkeiten installieren**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Anwendung starten**
-   ```bash
-   python main.py
-   ```
+```bash
+python main.py
+```
 
 ## Erste Schritte
 
-### 1. Datenbank erstellen
-Beim ersten Start wirst du aufgefordert, eine Datenbank zu erstellen:
-- Wähle "Neue Datenbank erstellen"
-- Gib einen Namen ein (z.B. "Meine Passwörter")
-- Wähle einen Speicherort (Standard: Dokumente/SecurePass/)
-- Erstelle ein starkes Master-Passwort (mindestens 8 Zeichen)
-- **Wichtig**: Das Master-Passwort kann nicht wiederhergestellt werden!
+1. **Datenbank anlegen** – Beim ersten Start "Neue Datenbank erstellen" wählen, Speicherort festlegen und ein starkes Master-Passwort vergeben.
+2. **Einträge hinzufügen** – Mit "+ Neuer Eintrag" Name, Kategorie, Benutzername, Passwort, URL und Notizen speichern.
+3. **Passwörter nutzen** – Anzeigen, kopieren, bearbeiten oder löschen über die Symbole in der Eintragsliste.
+4. **Cloud-Backup** – Die `.spdb`-Datei liegt an einem frei wählbaren Ort (z. B. Dropbox/Google Drive). Sie ist verschlüsselt und kann nur mit dem Master-Passwort geöffnet werden.
 
-**Für Cloud-Sync:**
-- Wähle einen Cloud-Ordner als Speicherort (z.B. Dropbox/SecurePass/)
-- Die .spdb Datei wird automatisch synchronisiert
-- Auf anderen Geräten: "Datenbank öffnen" und zur Cloud-Datei navigieren
-
-### 2. Einträge hinzufügen
-- Klicke auf "+ Neuer Eintrag"
-- Fülle die Felder aus (Name, Kategorie, Username, Passwort)
-- Nutze den Passwort-Generator (🎲) für sichere Passwörter
-- Klicke auf "Speichern"
-
-### 3. Passwörter verwalten
-- **Anzeigen**: Klicke auf das Augen-Symbol (👁) um ein Passwort zu sehen
-- **Kopieren**: Klicke auf das Clipboard-Symbol (📋) um es zu kopieren
-- **Bearbeiten**: Klicke auf das Stift-Symbol (✏️)
-- **Löschen**: Klicke auf das Papierkorb-Symbol (🗑)
-
-### 4. Kategorien nutzen
-- Klicke in der Sidebar auf eine Kategorie, um nur deren Einträge zu sehen
-- Erstelle eigene Kategorien mit "+ Neue Kategorie"
-- "Alle" zeigt alle Einträge unabhängig von der Kategorie
-
-### 5. Suche verwenden
-- Nutze das Suchfeld oben rechts
-- Suche funktioniert über Name und Username
-
-## Sicherheitshinweise
-
-### Master-Passwort
-- **Wähle ein starkes Master-Passwort** mit mindestens 12 Zeichen
-- Verwende Groß- und Kleinbuchstaben, Zahlen und Sonderzeichen
-- **Teile dein Master-Passwort niemals** mit anderen
-- **Es gibt keine Wiederherstellung** - wenn du es vergisst, sind alle Daten verloren
-
-### Auto-Lock
-- Die Anwendung sperrt sich automatisch nach 5 Minuten Inaktivität
-- Du musst dein Master-Passwort erneut eingeben
-- Dies schützt deine Daten, wenn du den Computer verlässt
-
-### Zwischenablage
-- Kopierte Passwörter werden nach 30 Sekunden automatisch aus der Zwischenablage gelöscht
-- Dies verhindert, dass Passwörter unbeabsichtigt woanders eingefügt werden
-
-### Backup
-- Deine Daten werden in einer `.spdb` Datei gespeichert (Standard: Dokumente/SecurePass/)
-- **Empfohlen**: Speichere die Datenbank in einem Cloud-Ordner für automatisches Backup
-- **Alternativ**: Kopiere die .spdb Datei regelmäßig auf einen externen Speicher
-- Die Datenbank-Datei ist vollständig verschlüsselt und kann nur mit dem Master-Passwort geöffnet werden
-- **Versionierung**: Viele Cloud-Dienste bewahren alte Versionen auf - nutze dies für zusätzliche Sicherheit!
-
-## Dateistruktur
-
-```
-PasswortManager/
-├── main.py                 # Entry Point
-├── requirements.txt        # Python-Abhängigkeiten
-├── README.md              # Diese Datei
-├── data/
-│   └── passwords.db       # SQLite-Datenbank (wird beim ersten Start erstellt)
-└── src/
-    ├── core/              # Kern-Module
-    │   ├── encryption.py  # AES-256 Verschlüsselung
-    │   ├── database.py    # SQLite-Verwaltung
-    │   └── models.py      # Datenmodelle
-    ├── auth/              # Authentifizierung
-    │   └── master_password.py  # Argon2 Hashing
-    ├── password/          # Passwort-Tools
-    │   ├── generator.py   # Generator
-    │   └── strength.py    # Stärke-Bewertung
-    ├── gui/               # Benutzeroberfläche
-    │   ├── main_window.py
-    │   ├── login_dialog.py
-    │   ├── entry_dialog.py
-    │   ├── generator_dialog.py
-    │   └── widgets.py
-    └── utils/             # Hilfsfunktionen
-        └── clipboard.py   # Zwischenablage-Manager
-```
-
-## Technische Details
-
-### Verschlüsselung
-- **Algorithmus**: AES-256 (via Fernet)
-- **Key-Derivation**: SHA256 des Master-Passworts
-- **Master-Passwort**: Argon2id mit sicheren Parametern
-  - Time cost: 2
-  - Memory cost: 64 MB
-  - Parallelism: 4
-
-### Datenbank
-- **Format**: SQLite
-- **Tabellen**: users, categories, password_entries
-- **Verschlüsselte Felder**: password, notes, totp_secret
-
-### GUI & Design
-- **Framework**: PyQt6
-- **Icons**: SVG-basiert für skalierbare, gestochen scharfe Darstellung
-- **Animationen**: Smooth Transitions (Fade, Slide, Scale, Pulse, Shake)
-- **Layout**: Vollständig responsive mit modernen Abständen
-- **Style**: Apple-inspiriertes Design mit Dark & Light Mode
-- **Responsive**: Mindestgrößen für alle Dialoge und optimierte Layouts
-
-## Testing & Entwicklung
-
-### UI Testing
-
-Das Projekt enthält **zwei UI-Test-Tools** für verschiedene Anwendungsfälle:
-
-#### 🧪 Umfassendes Test-Tool (Empfohlen)
-
-Testet **ALLE** UI-Komponenten (29 Komponenten, 100% Coverage):
-
-```bash
-# Interaktives Test-Fenster mit 7 Tabs
-python test_ui_comprehensive.py --interactive
-
-# CLI-Modus für CI/CD
-python test_ui_comprehensive.py --test all
-python test_ui_comprehensive.py --test dialogs
-python test_ui_comprehensive.py --test widgets
-python test_ui_comprehensive.py --test mainwindow
-python test_ui_comprehensive.py --test animations
-```
-
-**Getestete Komponenten:**
-- 🪟 6 Dialoge (Login, Entry, Generator, Settings, DB-Selector, New DB)
-- 🧩 2 Widgets (PasswordEntryWidget, CategoryButton)
-- 🏠 MainWindow (Entry-Liste, Kategorien, Suche, Lock)
-- ✨ 5 Animationen (Fade, Slide, Pulse, Press, Shake)
-- 🎨 Theme-System (Light/Dark Mode, Toggle, Cycle)
-- 💾 Datenbank-CRUD (Create, Read, Update, Delete)
-
-**Features:**
-- Mock-Datenbank für sichere Tests
-- Automatische Test-Suiten (55s vollständiger Test)
-- Echtzeit-Logging mit detaillierten Ergebnissen
-- 7-Tab Interface für organisierte Tests
-- CI/CD-kompatibel
-
-Siehe `docs/COMPREHENSIVE_UI_TESTING.md` für vollständige Dokumentation.
-
-#### ⚡ Schnelles Test-Tool
-
-Für schnelle Theme- und Settings-Tests:
-
-```bash
-python test_ui.py --interactive
-python test_ui.py --test theme
-```
-
-Siehe `docs/UI_TESTING.md` für Details.
-
-### Unit Tests
+## Tests
 
 ```bash
 # Alle Tests ausführen
@@ -245,33 +46,39 @@ pytest
 
 # Mit Coverage-Report
 pytest --cov=src --cov-report=html
-
-# Spezifische Tests
-pytest tests/test_encryption.py -v
 ```
 
-## Häufige Fragen
+Zusätzliche UI-Testtools:
 
-**F: Kann ich mein Master-Passwort ändern?**
-A: Aktuell nicht implementiert. Eine zukünftige Version könnte diese Funktion enthalten.
+```bash
+python test_ui_comprehensive.py --test all   # CLI-Modus
+python test_ui_comprehensive.py --interactive # Interaktives Test-Fenster
+```
 
-**F: Kann ich meine Daten exportieren?**
-A: Die Datenbank liegt in `data/passwords.db`. Du kannst diese Datei kopieren, aber sie ist verschlüsselt.
+Siehe `docs/COMPREHENSIVE_UI_TESTING.md` und `docs/UI_TESTING.md` für Details.
 
-**F: Ist die Anwendung sicher genug für sensible Daten?**
-A: Die Anwendung verwendet industriestandard Verschlüsselung (AES-256, Argon2). Für private Nutzung ist sie sicher, aber sie wurde nicht professionell auditiert.
+## Sicherheitshinweise
 
-**F: Läuft die Anwendung auf macOS/Linux?**
-A: Ja! PyQt6 und alle verwendeten Libraries sind plattformübergreifend.
+- Das Master-Passwort kann **nicht wiederhergestellt** werden – bei Verlust sind alle Daten unlesbar.
+- Wähle ein Master-Passwort mit mindestens 12 Zeichen, Groß-/Kleinbuchstaben, Zahlen und Sonderzeichen.
+- Speichere regelmäßig Backups der `.spdb`-Datei an einem separaten Ort.
+- Dieses Projekt wurde zu Bildungszwecken erstellt und ist nicht professionell auditiert.
+
+## Technischer Überblick
+
+| Komponente | Verwendung |
+|------------|------------|
+| Verschlüsselung | AES-256 über `cryptography` (Fernet) |
+| Schlüsselableitung | Argon2id über `argon2-cffi` |
+| Datenbank | SQLite mit Tabellen für Benutzer, Kategorien und Einträge |
+| GUI | PyQt6 mit SVG-Icons und responsivem Layout |
+
+Weitere Details zur Architektur finden sich in `DESIGN.md`, zur Datenbank in `DATABASE.md` und zum Beitragsworkflow in `CONTRIBUTING.md`.
 
 ## Lizenz
 
 Dieses Projekt ist für Bildungszwecke erstellt worden.
 
-## Unterstützung
-
-Bei Problemen oder Fragen, erstelle ein Issue im Repository.
-
 ---
 
-**⚠️ WICHTIG: Dieses Passwort-Manager-Tool wurde zu Bildungszwecken erstellt. Erstelle regelmäßig Backups und bewahre dein Master-Passwort sicher auf!**
+**⚠️ Wichtig:** *SecurePass Manager* ist ein Lernprojekt. Verwende es nur für nicht-kritische Daten, solange kein unabhängiges Sicherheitsaudit vorliegt.
